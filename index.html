@@ -1,0 +1,3247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cronograma — Gestión de contenido</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --arena: #F4EFE6;
+  --arena-deep: #E8DFCE;
+  --tierra: #8B6F4E;
+  --tierra-deep: #5C4630;
+  --tinta: #2B2620;
+  --ladrillo: #B6553A;
+  --salvia: #6B7A5E;
+  --ocre: #C99A3C;
+  --cielo: #4F7A8B;
+
+  --estado-revision: #C99A3C;
+  --estado-aprobado: #6B7A5E;
+  --estado-programado: #4F7A8B;
+  --estado-rechazado: #B6553A;
+
+  --radius: 3px;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--arena);
+  color: var(--tinta);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input, select, textarea { font-family: inherit; }
+
+/* ===== Focus visibility ===== */
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
+  outline: 2px solid var(--ladrillo);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ===== Login Screen ===== */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: var(--tinta);
+}
+
+.login-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(244,239,230,0.04) 39px, rgba(244,239,230,0.04) 40px),
+    repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(244,239,230,0.04) 39px, rgba(244,239,230,0.04) 40px);
+}
+
+.login-card {
+  position: relative;
+  z-index: 1;
+  background: var(--arena);
+  width: 100%;
+  max-width: 420px;
+  margin: 24px;
+  padding: 56px 44px 44px;
+  border-radius: var(--radius);
+  box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+}
+
+.login-mark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tierra);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+.login-mark::before {
+  content: '';
+  width: 8px; height: 8px;
+  background: var(--ladrillo);
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.login-title {
+  font-family: var(--font-display);
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--tinta);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.login-sub {
+  font-size: 14px;
+  color: var(--tierra-deep);
+  margin-bottom: 36px;
+  line-height: 1.5;
+}
+
+.field { margin-bottom: 18px; }
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tierra-deep);
+  margin-bottom: 7px;
+}
+.field input {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1.5px solid var(--arena-deep);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 15px;
+  color: var(--tinta);
+  transition: border-color 0.15s;
+}
+.field input:focus { border-color: var(--tierra); outline: none; }
+
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: var(--tinta);
+  color: var(--arena);
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-primary:hover { background: var(--ladrillo); }
+.btn-primary:active { transform: scale(0.99); }
+
+.login-error {
+  background: rgba(182,85,58,0.1);
+  border: 1px solid rgba(182,85,58,0.3);
+  color: var(--ladrillo);
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 18px;
+  display: none;
+}
+.login-error.show { display: block; }
+
+.login-foot {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--arena-deep);
+  font-size: 12px;
+  color: var(--tierra);
+  text-align: center;
+}
+
+/* ===== App Shell ===== */
+#app { display: none; min-height: 100vh; }
+#app.active { display: block; }
+
+.topbar {
+  background: var(--tinta);
+  color: var(--arena);
+  padding: 0 28px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.topbar-brand .dot {
+  width: 9px; height: 9px;
+  background: var(--ladrillo);
+  border-radius: 50%;
+}
+.topbar-brand .name {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+}
+.topbar-role {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: rgba(244,239,230,0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  color: var(--ocre);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.topbar-user {
+  font-size: 13px;
+  color: var(--arena-deep);
+}
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(244,239,230,0.25);
+  color: var(--arena);
+  padding: 7px 14px;
+  border-radius: var(--radius);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+.btn-logout:hover { background: rgba(244,239,230,0.1); }
+
+.main {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 32px 28px 80px;
+}
+
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--tierra);
+  background: var(--arena);
+}
+
+/* ===== Page header ===== */
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.page-title {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.page-sub {
+  font-size: 13px;
+  color: var(--tierra-deep);
+  margin-top: 4px;
+}
+
+/* ===== Tabs ===== */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1.5px solid var(--arena-deep);
+  margin-bottom: 28px;
+}
+.tab {
+  background: transparent;
+  border: none;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tierra);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1.5px;
+}
+.tab.active {
+  color: var(--tinta);
+  border-bottom-color: var(--ladrillo);
+}
+.tab:hover { color: var(--tinta); }
+
+/* ===== Client selector chips (admin/editor) ===== */
+.client-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff;
+  border: 1.5px solid var(--arena-deep);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tierra-deep);
+  transition: all 0.12s;
+}
+.chip:hover { border-color: var(--tierra); }
+.chip.active {
+  background: var(--tinta);
+  color: var(--arena);
+  border-color: var(--tinta);
+}
+.chip .swatch {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chip-notif-badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  background: var(--ladrillo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(182,85,58,0.5);
+  padding: 0 4px;
+}
+
+/* ===== Month nav ===== */
+.month-nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.month-nav .lbl {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  min-width: 160px;
+}
+.icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1.5px solid var(--arena-deep);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--tierra-deep);
+  transition: all 0.12s;
+}
+.icon-btn:hover { border-color: var(--tierra); background: var(--arena-deep); }
+
+/* ===== Plan summary bar ===== */
+.plan-bar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #fff;
+  border: 1.5px solid var(--arena-deep);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.plan-bar .item { font-size: 13px; color: var(--tierra-deep); }
+.plan-bar .item strong { color: var(--tinta); font-weight: 700; }
+.progress-track {
+  flex: 1;
+  min-width: 140px;
+  height: 6px;
+  background: var(--arena-deep);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--salvia);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* ===== Post cards grid ===== */
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+.post-card {
+  background: #fff;
+  border: 1.5px solid var(--arena-deep);
+  border-radius: var(--radius);
+  padding: 11px;
+  position: relative;
+  border-top: 4px solid var(--estado-revision);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+  height: 340px;
+}
+.post-card-collapsed {
+  background: #fff;
+  border: 1.5px solid var(--arena-deep);
+  border-radius: var(--radius);
+  padding: 12px;
+  position: relative;
+  border-top: 4px solid var(--estado-revision);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  height: 168px;
+  cursor: pointer;
+  transition: box-shadow 0.15s, transform 0.1s;
+}
+.post-card-collapsed:hover {
+  box-shadow: 0 4px 14px rgba(43,38,32,0.12);
+  transform: translateY(-1px);
+}
+.post-card-collapsed .collapsed-propuesta {
+  font-size: 12px;
+  color: var(--tinta);
+  line-height: 1.4;
+  flex: 1;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+.post-card-collapsed .collapsed-propuesta.empty { color: var(--tierra); font-style: italic; }
+.post-card-collapsed .collapsed-hint {
+  font-size: 10px;
+  color: var(--tierra);
+  text-align: right;
+}
+.post-card[data-estado="revision"] { border-top-color: var(--estado-revision); }
+.post-card[data-estado="aprobado"] { border-top-color: var(--estado-aprobado); }
+.post-card[data-estado="programado"] { border-top-color: var(--estado-programado); }
+.post-card[data-estado="rechazado"] { border-top-color: var(--estado-rechazado); }
+.post-card-collapsed[data-estado="revision"] { border-top-color: var(--estado-revision); }
+.post-card-collapsed[data-estado="aprobado"] { border-top-color: var(--estado-aprobado); }
+.post-card-collapsed[data-estado="programado"] { border-top-color: var(--estado-programado); }
+.post-card-collapsed[data-estado="rechazado"] { border-top-color: var(--estado-rechazado); }
+
+.post-card.is-programada {
+  background: #EAF3DE;
+  border-color: #C0DD97;
+}
+.post-card-collapsed.is-programada {
+  background: #EAF3DE;
+  border-color: #C0DD97;
+}
+
+.post-card.historia-card {
+  border-left: 6px solid var(--cielo);
+  border-top: 1.5px solid var(--arena-deep);
+  background: #F7FAFB;
+}
+.post-card.historia-card.is-programada {
+  background: #EAF3DE;
+  border-left-color: var(--salvia);
+}
+.post-card-collapsed.historia-card {
+  border-left: 6px solid var(--cielo);
+  border-top: 1.5px solid var(--arena-deep);
+  background: #F7FAFB;
+}
+.post-card-collapsed.historia-card.is-programada {
+  background: #EAF3DE;
+  border-left-color: var(--salvia);
+}
+.kind-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--cielo);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.kind-tag::before { content: '◆'; font-size: 8px; }
+
+.unseen-note-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--ladrillo);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(182,85,58,0.45);
+  z-index: 2;
+  white-space: nowrap;
+  animation: pulse-note 1.8s ease-in-out infinite;
+}
+@keyframes pulse-note {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .unseen-note-badge { animation: none; }
+}
+
+.post-card-collapsed.select-mode {
+  cursor: pointer;
+}
+.post-card-collapsed.is-selected {
+  outline: 3px solid var(--ladrillo);
+  outline-offset: -1px;
+}
+.select-checkbox {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--tierra);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 3;
+  flex-shrink: 0;
+}
+.select-checkbox.checked {
+  background: var(--ladrillo);
+  border-color: var(--ladrillo);
+}
+
+.notif-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(239,159,39,0.35);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: #412402;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.notif-row:hover { background: #fff; }
+.notif-go {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0C447C;
+  flex-shrink: 0;
+}
+
+.post-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+.post-date {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--tierra-deep);
+  font-weight: 500;
+}
+.post-tipo {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(43,38,32,0.12);
+}
+.post-tipo[data-tipo="post"] { background: #E6F1FB; color: #0C447C; }
+.post-tipo[data-tipo="carrusel"] { background: #EEEDFE; color: #3C3489; }
+.post-tipo[data-tipo="reel"] { background: #FAECE7; color: #712B13; }
+.post-tipo[data-tipo="story"] { background: #FBEAF0; color: #72243E; }
+
+.estado-badge {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  color: #fff;
+  background: var(--tierra);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  box-shadow: 0 1px 2px rgba(43,38,32,0.12);
+}
+.estado-badge[data-estado="revision"] { background: var(--estado-revision); }
+.estado-badge[data-estado="aprobado"] { background: var(--estado-aprobado); }
+.estado-badge[data-estado="programado"] { background: var(--estado-programado); }
+.estado-badge[data-estado="rechazado"] { background: var(--estado-rechazado); }
+
+.post-field-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tierra);
+  margin-bottom: 2px;
+}
+
+.post-copy {
+  font-size: 11px;
+  color: var(--tinta);
+  line-height: 1.4;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.post-copy.empty { color: var(--tierra); font-style: italic; }
+
+.post-concepto-wrap {
+  display: flex;
+  flex-direction: column;
+  max-height: 56px;
+  flex-shrink: 0;
+}
+.post-concepto {
+  font-size: 10px;
+  color: var(--tierra-deep);
+  line-height: 1.35;
+  background: var(--arena);
+  border-radius: var(--radius);
+  padding: 4px 7px;
+  overflow-y: auto;
+}
+
+.post-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.post-actions .btn-sm {
+  font-size: 10px;
+  padding: 4px 8px;
+  gap: 4px;
+}
+.btn-sm {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 12px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--arena-deep);
+  background: #fff;
+  color: var(--tierra-deep);
+  transition: all 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-sm:hover { border-color: var(--tierra); color: var(--tinta); }
+.btn-sm.primary { background: var(--tinta); color: var(--arena); border-color: var(--tinta); }
+.btn-sm.primary:hover { background: var(--ladrillo); border-color: var(--ladrillo); }
+.btn-sm.approve { background: var(--salvia); color: #fff; border-color: var(--salvia); }
+.btn-sm.approve:hover { background: #586a4d; }
+.btn-sm.reject { background: transparent; color: var(--ladrillo); border-color: var(--ladrillo); }
+.btn-sm.reject:hover { background: rgba(182,85,58,0.08); }
+.btn-sm.danger { color: var(--ladrillo); }
+
+.post-link {
+  font-size: 12px;
+  color: var(--cielo);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+.post-link:hover { text-decoration: underline; }
+
+.feedback-box {
+  background: var(--arena);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12px;
+  color: var(--tierra-deep);
+  font-style: italic;
+}
+
+/* ===== Empty state ===== */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--tierra);
+}
+.empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+.empty-state .msg { font-size: 14px; }
+
+/* ===== Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(43,38,32,0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: var(--arena);
+  border-radius: var(--radius);
+  padding: 32px;
+  max-width: 720px;
+  width: 100%;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+}
+@media (max-width: 640px) {
+  .modal-grid-2 { grid-template-columns: 1fr; }
+}
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.modal-field { margin-bottom: 16px; }
+.modal-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tierra-deep);
+  margin-bottom: 6px;
+}
+.modal-field input, .modal-field select, .modal-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--arena-deep);
+  border-radius: var(--radius);
+  background: #fff;
+  font-size: 14px;
+  color: var(--tinta);
+}
+.modal-field textarea { resize: vertical; min-height: 70px; }
+.modal-field input:focus, .modal-field select:focus, .modal-field textarea:focus { outline: none; border-color: var(--tierra); }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* ===== Admin: client management table ===== */
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1.5px solid var(--arena-deep);
+}
+.admin-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--tierra-deep);
+  padding: 12px 16px;
+  background: var(--arena);
+  border-bottom: 1.5px solid var(--arena-deep);
+}
+.admin-table td {
+  padding: 14px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--arena-deep);
+}
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table .name-cell { font-weight: 600; }
+
+.section-block { margin-bottom: 40px; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+</style>
+</head>
+<body>
+
+<div id="loading" class="loading-screen">cargando…</div>
+
+<div id="login-wrap" class="login-wrap" style="display:none;">
+  <div class="login-card">
+    <div class="login-mark">Estudio de contenido</div>
+    <h1 class="login-title">Cronograma</h1>
+    <p class="login-sub">Ingresá con tu usuario para ver el calendario, las aprobaciones y los entregables.</p>
+    <div id="login-error" class="login-error"></div>
+    <form id="login-form" onsubmit="return false;">
+      <div class="field">
+        <label for="login-user">Usuario</label>
+        <input type="text" id="login-user" autocomplete="username" autocapitalize="off">
+      </div>
+      <div class="field">
+        <label for="login-pass">Contraseña</label>
+        <input type="password" id="login-pass" autocomplete="current-password">
+      </div>
+      <button type="button" id="btn-login" class="btn-primary">Ingresar</button>
+    </form>
+    <div class="login-foot">Acceso privado · contactá a Cata si no tenés tus credenciales</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-brand">
+      <span class="dot"></span>
+      <span class="name">Cronograma</span>
+      <span class="topbar-role" id="role-badge">—</span>
+    </div>
+    <div class="topbar-right">
+      <span class="topbar-user" id="user-label">—</span>
+      <button class="btn-logout" id="btn-logout">Salir</button>
+    </div>
+  </div>
+  <div class="main" id="main-content">
+    <!-- views injected here -->
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+/* ============================================================
+   FIREBASE INIT
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "AIzaSyCITsbdbOPlcG5CQ4z8XPEm5wVT7fy2pT0",
+  authDomain: "cronograma-comest.firebaseapp.com",
+  projectId: "cronograma-comest",
+  storageBucket: "cronograma-comest.firebasestorage.app",
+  messagingSenderId: "1098681911799",
+  appId: "1:1098681911799:web:e3b3f1868d5512fd9f06f2"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+/* ============================================================
+   STORAGE HELPERS — backed by Firebase Firestore.
+   All keys live in a single collection "appdata", with each
+   document keyed by the storage key (shared docs use the key
+   directly; this app only ever uses shared=true, but we keep
+   the parameter for compatibility with the rest of the code).
+   ============================================================ */
+function storageCollection() {
+  return db.collection('appdata');
+}
+
+async function storeGet(key, shared) {
+  try {
+    const doc = await storageCollection().doc(key).get();
+    if (!doc.exists) return null;
+    const data = doc.data();
+    return data && data.value !== undefined ? JSON.parse(data.value) : null;
+  } catch (e) {
+    console.warn('storeGet miss for', key, e && e.message);
+    return null;
+  }
+}
+async function storeSet(key, value, shared) {
+  try {
+    await storageCollection().doc(key).set({ value: JSON.stringify(value), updatedAt: Date.now() });
+    return true;
+  } catch (e) {
+    console.error('storage set error for', key, e);
+    return false;
+  }
+}
+async function storeList(prefix, shared) {
+  try {
+    const snapshot = await storageCollection().get();
+    const keys = [];
+    snapshot.forEach(doc => { if (!prefix || doc.id.startsWith(prefix)) keys.push(doc.id); });
+    return keys;
+  } catch (e) {
+    return [];
+  }
+}
+async function storeDelete(key, shared) {
+  try {
+    await storageCollection().doc(key).delete();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/* ============================================================
+   SEED DATA — runs once, sets up initial users/plans/clients
+   All app data is SHARED (shared=true) since Cata, Tamy, and
+   clients all need to see the same underlying data.
+   ============================================================ */
+const SEED_VERSION = 'v5';
+
+async function ensureSeed() {
+  let seeded = null;
+  try {
+    seeded = await storeGet('meta:seed_version', true);
+  } catch (e) { /* ignore, proceed to seed */ }
+
+  // Double-check users actually exist, not just the version flag —
+  // protects against a partial/interrupted seed from a previous load.
+  const existingUsers = await storeGet('app:users', true);
+  if (seeded === SEED_VERSION && existingUsers && existingUsers.cata) {
+    return;
+  }
+
+  // --- Users ---
+  const users = {
+    'cata': { password: 'cata2026', role: 'admin', name: 'Cata', clientId: null },
+    'tamy': { password: 'tamy2026', role: 'editor', name: 'Tamy', clientId: null },
+    'paula': { password: 'paula2026', role: 'client', name: 'Paula Pirovano', clientId: 'paula' },
+    'mariana_m': { password: 'mariana2026', role: 'client', name: 'Mariana Mongiardino', clientId: 'mariana_m' },
+    'viviana': { password: 'viviana2026', role: 'client', name: 'Viviana Gómez', clientId: 'viviana' },
+    'mariana_g': { password: 'mariana2026', role: 'client', name: 'Mariana Gómez', clientId: 'mariana_g' },
+  };
+  const okUsers = await storeSet('app:users', users, true);
+
+  // --- Plans: 2 families ---
+  // Family "solo" = Cata works alone (Paula). Family "equipo" = Cata + Tamy.
+  // piezasFeed = posteos de feed (post/carrusel/reel cuentan como "tipo" dentro de este bloque)
+  // numHistorias = cantidad de TARJETAS de historia (cada tarjeta puede agrupar 1-3 stories)
+  const plans = {
+    'solo_base': {
+      family: 'solo', name: 'Estrategia Base', price: 145000,
+      detail: 'Fotos espontáneas sin límite + hasta 8 programadas + hasta 4 reels + hasta 8 historias',
+      piezasFeed: 8 + 4, // programadas + reels (espontáneas no generan filas fijas)
+      numHistorias: 8,
+    },
+    'solo_activa': {
+      family: 'solo', name: 'Estrategia Activa', price: 185000,
+      detail: 'Fotos espontáneas sin límite + hasta 10 programadas + hasta 6 reels + hasta 10 historias',
+      piezasFeed: 10 + 6,
+      numHistorias: 10,
+    },
+    'solo_integral': {
+      family: 'solo', name: 'Estrategia Integral', price: 230000,
+      detail: 'Fotos espontáneas sin límite + hasta 12 programadas + hasta 8 reels + hasta 12 historias',
+      piezasFeed: 12 + 8,
+      numHistorias: 12,
+    },
+    'equipo_base': {
+      family: 'equipo', name: 'Estrategia Base', price: 190000,
+      detail: '12 piezas mensuales de feed + 8 historias',
+      piezasFeed: 12,
+      numHistorias: 8,
+    },
+    'equipo_activa': {
+      family: 'equipo', name: 'Estrategia Activa', price: 230000,
+      detail: '16 piezas mensuales de feed (incluye 2 reels grabados) + 12 historias',
+      piezasFeed: 16,
+      numHistorias: 12,
+    },
+    'equipo_integral': {
+      family: 'equipo', name: 'Estrategia Integral', price: 260000,
+      detail: '20 piezas mensuales de feed (incluye 4 reels grabados) + 16 historias',
+      piezasFeed: 20,
+      numHistorias: 16,
+    },
+  };
+  const okPlans = await storeSet('app:plans', plans, true);
+
+  // --- Clients --- (plan removed: plan is now chosen per month)
+  const clients = {
+    'paula': { name: 'Paula Pirovano', family: 'solo', color: '#B6553A', allowLinkedin: true, planDefault: null },
+    'mariana_m': { name: 'Mariana Mongiardino', family: 'equipo', color: '#4F7A8B', allowLinkedin: false, planDefault: 'equipo_base' },
+    'viviana': { name: 'Viviana Gómez', family: 'equipo', color: '#6B7A5E', allowLinkedin: false, planDefault: 'equipo_activa' },
+    'mariana_g': { name: 'Mariana Gómez', family: 'equipo', color: '#C99A3C', allowLinkedin: false, planDefault: 'equipo_activa' },
+  };
+  const okClients = await storeSet('app:clients', clients, true);
+
+  if (!okUsers || !okPlans || !okClients) {
+    showFatalError('No se pudo inicializar el almacenamiento de datos. Probá recargar la página. Si persiste, puede ser un problema temporal del servicio de almacenamiento.');
+    return;
+  }
+
+  await storeSet('meta:seed_version', SEED_VERSION, true);
+}
+
+function showFatalError(msg) {
+  const el = document.getElementById('loading');
+  el.style.display = 'flex';
+  el.style.flexDirection = 'column';
+  el.style.gap = '12px';
+  el.style.padding = '20px';
+  el.style.textAlign = 'center';
+  el.innerHTML = `<div style="font-weight:600;color:#B6553A;">Error al cargar</div><div style="max-width:380px;">${msg}</div>`;
+}
+
+/* ============================================================
+   SESSION (local only — not shared)
+   ============================================================ */
+function getSession() {
+  try {
+    const raw = sessionStorage.getItem('cf_session');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || !parsed.username || !parsed.role) return null;
+    return parsed;
+  } catch (e) { return null; }
+}
+function setSession(s) {
+  sessionStorage.setItem('cf_session', JSON.stringify(s));
+}
+function clearSession() {
+  sessionStorage.removeItem('cf_session');
+}
+
+/* ============================================================
+   APP INIT
+   ============================================================ */
+async function init() {
+  try {
+    await ensureSeed();
+  } catch (e) {
+    showFatalError('Error al inicializar datos: ' + (e && e.message ? e.message : String(e)));
+    return;
+  }
+  const session = getSession();
+  document.getElementById('loading').style.display = 'none';
+  if (session) {
+    try {
+      await showApp(session);
+    } catch (e) {
+      showFatalError('Error al cargar la vista: ' + (e && e.message ? e.message : String(e)));
+    }
+  } else {
+    document.getElementById('login-wrap').style.display = 'flex';
+  }
+}
+
+async function attemptLogin() {
+  const errorBox = document.getElementById('login-error');
+  errorBox.classList.remove('show');
+
+  try {
+    const userInput = document.getElementById('login-user').value.trim().toLowerCase();
+    const passInput = document.getElementById('login-pass').value;
+
+    const users = await storeGet('app:users', true);
+
+    if (!users) {
+      errorBox.textContent = 'No se pudo leer la base de usuarios. Recargá la página e intentá de nuevo.';
+      errorBox.classList.add('show');
+      return;
+    }
+
+    const user = users[userInput];
+
+    if (!user || user.password !== passInput) {
+      errorBox.textContent = 'Usuario o contraseña incorrectos.';
+      errorBox.classList.add('show');
+      return;
+    }
+
+    const session = { username: userInput, role: user.role, name: user.name, clientId: user.clientId };
+    setSession(session);
+    document.getElementById('login-wrap').style.display = 'none';
+    await showApp(session);
+  } catch (err) {
+    errorBox.textContent = 'Error inesperado: ' + (err && err.message ? err.message : String(err));
+    errorBox.classList.add('show');
+    console.error('Login error:', err);
+  }
+}
+
+document.getElementById('btn-login').addEventListener('click', attemptLogin);
+document.getElementById('login-user').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+document.getElementById('login-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') attemptLogin(); });
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  clearSession();
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('login-wrap').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+});
+
+async function showApp(session) {
+  document.getElementById('app').classList.add('active');
+  const roleLabels = { admin: 'Administradora', editor: 'Editora', client: 'Cliente' };
+  document.getElementById('role-badge').textContent = roleLabels[session.role] || session.role;
+  document.getElementById('user-label').textContent = session.name;
+  await renderView(session);
+}
+
+/* ============================================================
+   GLOBAL STATE
+   ============================================================ */
+const STATE = {
+  session: null,
+  clients: {},
+  plans: {},
+  users: {},
+  currentClientId: null,
+  currentMonth: null, // 'YYYY-MM'
+  currentTab: 'calendario',
+  selectMode: false,
+  selectedKeys: new Set(), // entries like 'post:3' or 'historia:1'
+};
+
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const ESTADOS_CLIENTE = [
+  { id: 'revision', label: 'En revisión' },
+  { id: 'aprobado', label: 'Aprobado' },
+  { id: 'rechazado', label: 'Rechazado' },
+];
+const TIPOS_CONTENIDO = [
+  { id: 'post', label: 'Post estático' },
+  { id: 'carrusel', label: 'Carrusel' },
+  { id: 'reel', label: 'Reel' },
+  { id: 'story', label: 'Story' },
+];
+
+function monthKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+function monthLabel(key) {
+  const [y,m] = key.split('-');
+  return `${MESES[parseInt(m,10)-1]} ${y}`;
+}
+function shiftMonth(key, delta) {
+  const [y,m] = key.split('-').map(Number);
+  const d = new Date(y, m-1+delta, 1);
+  return monthKey(d);
+}
+function esc(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function countUnseenNotes(notasInternas, username) {
+  if (!notasInternas || notasInternas.length === 0) return 0;
+  return notasInternas.filter(n => !n.vistoPor || !n.vistoPor.includes(username)).length;
+}
+
+function linkify(text) {
+  if (!text) return '';
+  const escaped = esc(text);
+  return escaped.replace(/(https?:\/\/[^\s<]+)/g, url =>
+    `<a href="${url}" target="_blank" rel="noopener" style="color:var(--cielo);text-decoration:underline;word-break:break-all;">${url}</a>`
+  );
+}
+
+// A reel needs BOTH portada + video to count as "design loaded".
+// Other content types use the single linkDiseno field.
+function postHasDiseno(post) {
+  if (post.tipo === 'reel') return !!(post.linkPortada && post.linkVideo);
+  return !!post.linkDiseno;
+}
+// Returns a representative link for quick-view actions (e.g. "open and download" for client view).
+function postPrimaryLink(post) {
+  if (post.tipo === 'reel') return post.linkVideo || post.linkPortada || '';
+  return post.linkDiseno || '';
+}
+
+/* ============================================================
+   EXCEL IMPORT — reads the "Posteos" and "Historias" sheets
+   from the template and creates cards for the current month.
+   ============================================================ */
+function excelSerialToISO(serial) {
+  // Excel serial date: days since 1899-12-30 (accounts for Excel's leap year bug)
+  const utcDays = Math.floor(serial - 25569);
+  const utcValue = utcDays * 86400; // seconds
+  const dateInfo = new Date(utcValue * 1000);
+  const y = dateInfo.getUTCFullYear();
+  const m = String(dateInfo.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(dateInfo.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function parseFechaDDMMAAAA(value) {
+  if (value === null || value === undefined || value === '') return '';
+
+  // Excel date object (when cellDates works for this sheet/cell)
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Excel serial date number (when the cell wasn't formatted as a date)
+  if (typeof value === 'number' && value > 1000 && value < 100000) {
+    try { return excelSerialToISO(value); } catch (e) { /* fall through */ }
+  }
+
+  let str = String(value).trim().toLowerCase();
+
+  // Strip a leading weekday abbreviation, e.g. "lun 13/7", "mié. 15/7", "vie, 17/7"
+  str = str.replace(/^(lun|mar|mié|mie|jue|vie|sáb|sab|dom)\.?,?\s+/i, '');
+
+  // DD/MM/AAAA or DD-MM-AAAA, with 1-2 digit day/month, 4-digit year
+  let match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (match) {
+    const [, d, m, y] = match;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+
+  // Same but with a 2-digit year, e.g. "13/7/26" -> assume 2000+
+  match = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/);
+  if (match) {
+    const [, d, m, y2] = match;
+    const y = 2000 + parseInt(y2, 10);
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+
+  // DD/MM with no year at all -> assume the year of the currently selected month
+  match = str.match(/^(\d{1,2})[\/\-](\d{1,2})$/);
+  if (match) {
+    const [, d, m] = match;
+    const y = STATE.currentMonth ? STATE.currentMonth.split('-')[0] : new Date().getFullYear();
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+
+  // Already ISO (AAAA-MM-DD)
+  match = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}`;
+  }
+
+  console.warn('No se pudo interpretar la fecha:', JSON.stringify(value), typeof value);
+  return '';
+}
+
+function isEmptyPostSlot(p) {
+  return !p.fechaPropuesta && !p.propuestaContenido && !p.caption;
+}
+function isEmptyHistoriaSlot(h) {
+  return !h.fechaSugerida && !(h.textos || []).some(t => t && t.trim()) && !h.material;
+}
+function isUntouchedExampleRow(rowValues, exampleValues) {
+  // Compares trimmed string values; if every non-empty example cell matches, treat as the untouched template example.
+  return exampleValues.every((exVal, i) => {
+    if (!exVal) return true;
+    const cellVal = String(rowValues[i] || '').trim();
+    return cellVal === String(exVal).trim();
+  });
+}
+const EXAMPLE_ROW_POSTEOS = ['10/07/2026', 'carrusel', '', '', '421123456-10', ''];
+const EXAMPLE_ROW_HISTORIAS = ['12/07/2026', 'Living con luz natural', '2', '', '', '', ''];
+
+async function deleteSelectedCards(clientId, selectedKeys) {
+  let posts = await getPosts(clientId, STATE.currentMonth);
+  let historias = await getHistorias(clientId, STATE.currentMonth);
+
+  const postIdxToDelete = new Set();
+  const historiaIdxToDelete = new Set();
+  selectedKeys.forEach(key => {
+    const [kind, idxStr] = key.split(':');
+    const idx = parseInt(idxStr, 10);
+    if (kind === 'post') postIdxToDelete.add(idx);
+    if (kind === 'historia') historiaIdxToDelete.add(idx);
+  });
+
+  posts = posts.filter((p, i) => !postIdxToDelete.has(i));
+  historias = historias.filter((h, i) => !historiaIdxToDelete.has(i));
+
+  // If everything that's left is empty, this counts as a full reset of the month:
+  // clear the "revisión finalizada" flag so the client can approve again from scratch.
+  const allRemainingEmpty = posts.every(isEmptyPostSlot) && historias.every(isEmptyHistoriaSlot);
+  if (allRemainingEmpty) {
+    await storeDelete(`revision_done:${clientId}:${STATE.currentMonth}`, true);
+  }
+
+  // Refill back up to the plan's quota with empty slots
+  const planId = await getMonthPlan(clientId, STATE.currentMonth);
+  const plan = planId ? STATE.plans[planId] : null;
+  if (plan) {
+    while (posts.length < plan.piezasFeed) posts.push(emptyPost(posts.length));
+    while (historias.length < plan.numHistorias) historias.push(emptyHistoria(historias.length));
+  }
+
+  await savePosts(clientId, STATE.currentMonth, posts);
+  await saveHistorias(clientId, STATE.currentMonth, historias);
+}
+
+async function importExcelFile(file, clientId) {
+  const planSlot = document.getElementById('plan-bar-slot');
+  const showStatus = (msg, isError) => {
+    let el = document.getElementById('excel-import-feedback');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'excel-import-feedback';
+      el.style.marginTop = '10px';
+      el.style.fontSize = '12px';
+      el.style.padding = '8px 12px';
+      el.style.borderRadius = 'var(--radius)';
+      planSlot.appendChild(el);
+    }
+    el.style.background = isError ? 'rgba(182,85,58,0.1)' : 'rgba(107,122,94,0.12)';
+    el.style.color = isError ? 'var(--ladrillo)' : 'var(--salvia)';
+    el.textContent = msg;
+  };
+
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+    console.log('Hojas encontradas en el Excel:', wb.SheetNames);
+
+    let postsAdded = 0;
+    let historiasAdded = 0;
+    let postsRowsRead = 0;
+    let historiasRowsRead = 0;
+
+    const sheetNamePosteos = wb.SheetNames.find(n => n.trim().toLowerCase() === 'posteos');
+    const sheetNameHistorias = wb.SheetNames.find(n => n.trim().toLowerCase() === 'historias');
+
+    if (sheetNamePosteos) {
+      const sheet = wb.Sheets[sheetNamePosteos];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      console.log('Filas crudas en Posteos:', rows);
+      let posts = await getPosts(clientId, STATE.currentMonth);
+      let emptySlotIdx = posts.findIndex(isEmptyPostSlot);
+
+      for (let i = 1; i < rows.length; i++) { // skip header row (0) only; example row (1) is filtered below if untouched
+        const row = rows[i];
+        if (!row || row.every(c => c === '' || c === undefined)) continue;
+        if (i === 1 && isUntouchedExampleRow(row, EXAMPLE_ROW_POSTEOS)) continue;
+        postsRowsRead++;
+        const [fechaRaw, tipoRaw, propuesta, caption, idRemax, material] = row;
+        const fecha = parseFechaDDMMAAAA(fechaRaw);
+        if (!fecha) continue; // rows without a valid date are skipped
+
+        const tipo = ['post','carrusel','reel'].includes(String(tipoRaw).trim().toLowerCase())
+          ? String(tipoRaw).trim().toLowerCase() : 'post';
+
+        let target;
+        if (emptySlotIdx !== -1) {
+          target = posts[emptySlotIdx];
+          emptySlotIdx = posts.findIndex((p, i2) => i2 > emptySlotIdx && isEmptyPostSlot(p));
+        } else {
+          target = emptyPost(posts.length);
+          posts.push(target);
+        }
+        target.fechaPropuesta = fecha;
+        target.tipo = tipo;
+        target.propuestaContenido = String(propuesta || '').trim();
+        target.caption = String(caption || '').trim();
+        target.idRemax = String(idRemax || '').trim();
+        target.material = String(material || '').trim();
+        postsAdded++;
+      }
+      if (postsAdded > 0) await savePosts(clientId, STATE.currentMonth, posts);
+    }
+
+    if (sheetNameHistorias) {
+      const sheet = wb.Sheets[sheetNameHistorias];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      let historias = await getHistorias(clientId, STATE.currentMonth);
+      let emptySlotIdx = historias.findIndex(isEmptyHistoriaSlot);
+
+      for (let i = 1; i < rows.length; i++) { // skip header row (0) only; example row (1) is filtered below if untouched
+        const row = rows[i];
+        if (!row || row.every(c => c === '' || c === undefined)) continue;
+        if (i === 1 && isUntouchedExampleRow(row, EXAMPLE_ROW_HISTORIAS)) continue;
+        historiasRowsRead++;
+        const [fechaRaw, propuestaIdea, cantidadRaw, texto1, texto2, texto3, material] = row;
+        const fecha = parseFechaDDMMAAAA(fechaRaw);
+        if (!fecha) continue;
+
+        const cantidadParsed = parseInt(cantidadRaw, 10);
+        const cantidad = [1,2,3].includes(cantidadParsed) ? cantidadParsed : 1;
+        const textos = [texto1, texto2, texto3].slice(0, cantidad).map(t => String(t || '').trim());
+
+        let target;
+        if (emptySlotIdx !== -1) {
+          target = historias[emptySlotIdx];
+          emptySlotIdx = historias.findIndex((h, i2) => i2 > emptySlotIdx && isEmptyHistoriaSlot(h));
+        } else {
+          target = emptyHistoria(historias.length);
+          historias.push(target);
+        }
+        target.fechaSugerida = fecha;
+        target.propuestaIdea = String(propuestaIdea || '').trim();
+        target.cantidadStories = cantidad;
+        target.textos = textos;
+        target.material = String(material || '').trim();
+        historiasAdded++;
+      }
+      if (historiasAdded > 0) await saveHistorias(clientId, STATE.currentMonth, historias);
+    }
+
+    console.log('Resumen import:', { sheetNamePosteos, sheetNameHistorias, postsRowsRead, historiasRowsRead, postsAdded, historiasAdded });
+
+    if (postsAdded === 0 && historiasAdded === 0) {
+      showStatus('No se importó nada — revisá que las hojas se llamen "Posteos" y "Historias" y que las filas tengan fecha.', true);
+    } else {
+      showStatus(`Importado: ${postsAdded} pieza${postsAdded!==1?'s':''} de feed + ${historiasAdded} historia${historiasAdded!==1?'s':''}.`, false);
+      renderPostGrid();
+    }
+  } catch (err) {
+    showStatus('Error al leer el archivo: ' + (err && err.message ? err.message : String(err)), true);
+    console.error('Excel import error:', err);
+  }
+}
+
+async function loadGlobalData() {
+  STATE.clients = await storeGet('app:clients', true) || {};
+  STATE.plans = await storeGet('app:plans', true) || {};
+  STATE.users = await storeGet('app:users', true) || {};
+}
+
+async function getPosts(clientId, month) {
+  const key = `posts:${clientId}:${month}`;
+  const posts = await storeGet(key, true) || [];
+  // Defensive normalization: guard against legacy/partial records missing estadoCliente
+  posts.forEach(p => { if (!p.estadoCliente) p.estadoCliente = 'revision'; });
+  return posts;
+}
+async function savePosts(clientId, month, posts) {
+  const key = `posts:${clientId}:${month}`;
+  await storeSet(key, posts, true);
+}
+
+function emptyPost(idx) {
+  return {
+    id: 'p' + Date.now() + '_' + idx,
+    fechaPropuesta: '',
+    tipo: 'post',
+    plataforma: 'instagram',
+    propuestaContenido: '', // guión / contenido de cada slide del carrusel, texto en pantalla del reel
+    idRemax: '',
+    material: '',
+    caption: '',
+    estadoCliente: 'revision', // revision | aprobado | rechazado
+    feedbackCliente: '',
+    linkDiseno: '', // used for post/carrusel/story. For tipo='reel', use linkPortada + linkVideo instead.
+    linkPortada: '',
+    linkVideo: '',
+    estadoDiseno: 'pendiente', // pendiente | aprobado | rechazado (admin revisa el diseño de Tamy)
+    programado: false,
+    fechaRealProgramacion: '',
+    notasInternas: [], // [{ author, date, text }]
+  };
+}
+
+async function getHistorias(clientId, month) {
+  const key = `historias:${clientId}:${month}`;
+  const historias = await storeGet(key, true) || [];
+  historias.forEach(h => { if (!h.estadoCliente) h.estadoCliente = 'revision'; });
+  return historias;
+}
+async function saveHistorias(clientId, month, historias) {
+  const key = `historias:${clientId}:${month}`;
+  await storeSet(key, historias, true);
+}
+
+function emptyHistoria(idx) {
+  return {
+    id: 'h' + Date.now() + '_' + idx,
+    fechaSugerida: '',
+    propuestaIdea: '', // título corto de la idea, visible para todos (cliente incluido)
+    cantidadStories: 1,
+    textos: [''], // un texto sugerido por cada story dentro de la tanda
+    material: '',
+    estadoCliente: 'revision', // revision | aprobado | rechazado
+    feedbackCliente: '',
+    linkDiseno: '',
+    estadoDiseno: 'pendiente', // pendiente | aprobado | rechazado (admin revisa el diseño de Tamy)
+    programado: false,
+    fechaRealProgramacion: '',
+    notasInternas: [],
+  };
+}
+
+async function getMonthPlan(clientId, month) {
+  const key = `plan:${clientId}:${month}`;
+  return await storeGet(key, true);
+}
+async function setMonthPlan(clientId, month, planId) {
+  const key = `plan:${clientId}:${month}`;
+  await storeSet(key, planId, true);
+}
+
+/* ============================================================
+   NOTIFICATIONS — explicit event log, clickable, dismiss-on-click
+   Stored as a single shared list, capped to avoid unbounded growth.
+   ============================================================ */
+async function getNotifications() {
+  return await storeGet('app:notifications', true) || [];
+}
+async function pushNotification(notif) {
+  const list = await getNotifications();
+  list.push({ id: 'n' + Date.now() + '_' + Math.random().toString(36).slice(2,7), createdAt: new Date().toISOString(), ...notif });
+  // Cap list size to keep storage light
+  while (list.length > 200) list.shift();
+  await storeSet('app:notifications', list, true);
+}
+async function dismissNotification(notifId) {
+  const list = await getNotifications();
+  const filtered = list.filter(n => n.id !== notifId);
+  await storeSet('app:notifications', filtered, true);
+}
+async function getNotificationsFor(role) {
+  const list = await getNotifications();
+  return list.filter(n => n.forRole === role).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
+async function ensureMonthPosts(clientId, month) {
+  let posts = await getPosts(clientId, month);
+  if (posts.length === 0) {
+    const planId = await getMonthPlan(clientId, month);
+    const plan = planId ? STATE.plans[planId] : null;
+    const total = plan ? plan.piezasFeed : 12;
+    posts = [];
+    for (let i = 0; i < total; i++) posts.push(emptyPost(i));
+    await savePosts(clientId, month, posts);
+  }
+  return posts;
+}
+
+async function ensureMonthHistorias(clientId, month) {
+  let historias = await getHistorias(clientId, month);
+  if (historias.length === 0) {
+    const planId = await getMonthPlan(clientId, month);
+    const plan = planId ? STATE.plans[planId] : null;
+    const total = plan ? plan.numHistorias : 0;
+    historias = [];
+    for (let i = 0; i < total; i++) historias.push(emptyHistoria(i));
+    await saveHistorias(clientId, month, historias);
+  }
+  return historias;
+}
+
+/* ============================================================
+   MAIN RENDER ROUTER
+   ============================================================ */
+async function renderView(session) {
+  STATE.session = session;
+  await loadGlobalData();
+
+  if (session.role === 'client') {
+    STATE.currentClientId = session.clientId;
+  } else if (session.role === 'editor') {
+    const equipoClients = Object.keys(STATE.clients).filter(id => STATE.clients[id].family === 'equipo');
+    if (!STATE.currentClientId || STATE.clients[STATE.currentClientId]?.family !== 'equipo') {
+      STATE.currentClientId = equipoClients[0] || null;
+    }
+  } else if (!STATE.currentClientId) {
+    STATE.currentClientId = Object.keys(STATE.clients)[0] || null;
+  }
+  if (!STATE.currentMonth) STATE.currentMonth = monthKey(new Date());
+
+  await renderShell();
+}
+
+async function renderShell() {
+  const main = document.getElementById('main-content');
+  const session = STATE.session;
+
+  let tabsHtml = '';
+  if (session.role === 'admin') {
+    tabsHtml = `
+      <div class="tabs">
+        <button class="tab ${STATE.currentTab==='calendario'?'active':''}" data-tab="calendario">Calendario</button>
+        <button class="tab ${STATE.currentTab==='clientes'?'active':''}" data-tab="clientes">Clientes y planes</button>
+        <button class="tab ${STATE.currentTab==='usuarios'?'active':''}" data-tab="usuarios">Usuarios y accesos</button>
+      </div>`;
+  }
+
+  let notifsHtml = '';
+  if (session.role === 'admin' || session.role === 'editor') {
+    const myNotifs = await getNotificationsFor(session.role);
+    if (myNotifs.length > 0) {
+      notifsHtml = `
+        <div style="background:#FAEEDA;border:1.5px solid #EF9F27;border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;display:flex;flex-direction:column;gap:6px;">
+          <div style="font-weight:700;font-size:12px;color:#633806;text-transform:uppercase;letter-spacing:0.04em;">Pendientes (${myNotifs.length})</div>
+          ${myNotifs.map(n => `
+            <button class="notif-row" data-notif-id="${n.id}" data-notif-client="${n.clientId}" data-notif-month="${n.month}" data-notif-kind="${n.kind||''}" data-notif-idx="${n.itemIdx!==undefined?n.itemIdx:''}">
+              <span>${esc(n.text)}</span>
+              <span class="notif-go">Ver →</span>
+            </button>
+          `).join('')}
+        </div>`;
+    }
+  }
+
+  let pageTitle = 'Cronograma de contenido';
+  if (session.role === 'client' && STATE.clients[STATE.currentClientId]) {
+    pageTitle = `Cronograma de contenido — ${STATE.clients[STATE.currentClientId].name}`;
+  } else if ((session.role === 'admin' || session.role === 'editor') && STATE.currentTab === 'calendario' && STATE.clients[STATE.currentClientId]) {
+    pageTitle = `Cronograma de contenido — ${STATE.clients[STATE.currentClientId].name}`;
+  }
+
+  main.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="page-title">${esc(pageTitle)}</div>
+        <div class="page-sub">${session.role === 'client' ? 'Tu calendario, tus aprobaciones, tus entregables.' : 'Gestión de calendario, aprobaciones y entregables.'}</div>
+      </div>
+    </div>
+    ${notifsHtml}
+    ${tabsHtml}
+    <div id="tab-content"></div>
+  `;
+
+  main.querySelectorAll('.notif-row').forEach(row => {
+    row.addEventListener('click', async () => {
+      const notifId = row.dataset.notifId;
+      const clientId = row.dataset.notifClient;
+      const month = row.dataset.notifMonth;
+      const kind = row.dataset.notifKind;
+      const idx = row.dataset.notifIdx;
+
+      await dismissNotification(notifId);
+
+      // Navigate to the right client/month, switch to calendar tab, then open the card's detail
+      STATE.currentTab = 'calendario';
+      STATE.currentClientId = clientId;
+      STATE.currentMonth = month;
+      await renderShell();
+
+      if (kind && idx !== '') {
+        const i = parseInt(idx, 10);
+        if (kind === 'post') {
+          await openPostDetailModal(clientId, i);
+        } else if (kind === 'historia') {
+          await openHistoriaDetailModal(clientId, i);
+        }
+      }
+    });
+  });
+
+  if (session.role === 'admin') {
+    main.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        STATE.currentTab = t.dataset.tab;
+        renderShell();
+      });
+    });
+  }
+
+  const content = document.getElementById('tab-content');
+  if (session.role !== 'admin' || STATE.currentTab === 'calendario') {
+    await renderCalendarTab(content);
+  } else if (STATE.currentTab === 'clientes') {
+    await renderClientsTab(content);
+  } else if (STATE.currentTab === 'usuarios') {
+    await renderUsersTab(content);
+  }
+}
+
+/* ============================================================
+   CALENDAR TAB
+   ============================================================ */
+async function renderCalendarTab(container) {
+  const session = STATE.session;
+  const canSeeAllClients = session.role === 'admin' || session.role === 'editor';
+
+  // Tamy (editor) only works with the "equipo" family clients — Paula (family "solo") is Cata-only
+  const visibleClients = session.role === 'editor'
+    ? Object.entries(STATE.clients).filter(([id, c]) => c.family === 'equipo')
+    : Object.entries(STATE.clients);
+
+  let chipsHtml = '';
+  if (canSeeAllClients) {
+    const myNotifsForChips = await getNotificationsFor(session.role);
+    const notifCountByClient = {};
+    myNotifsForChips.forEach(n => { notifCountByClient[n.clientId] = (notifCountByClient[n.clientId] || 0) + 1; });
+
+    chipsHtml = `<div class="client-chips">` +
+      visibleClients.map(([id, c]) => {
+        const count = notifCountByClient[id] || 0;
+        const badge = count > 0 ? `<span class="chip-notif-badge">${count}</span>` : '';
+        return `
+        <button class="chip ${STATE.currentClientId===id?'active':''}" data-client="${id}" style="position:relative;">
+          ${badge}
+          <span class="swatch" style="background:${c.color}"></span>${esc(c.name)}
+        </button>`;
+      }).join('') +
+      `</div>`;
+  }
+
+  container.innerHTML = `
+    ${chipsHtml}
+    <div class="month-nav">
+      <button class="icon-btn" id="prev-month">‹</button>
+      <span class="lbl" id="month-label"></span>
+      <button class="icon-btn" id="next-month">›</button>
+    </div>
+    <div id="plan-bar-slot"></div>
+    <div id="post-grid-slot"></div>
+    <div id="revision-final-slot"></div>
+  `;
+
+  if (canSeeAllClients) {
+    container.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        STATE.currentClientId = chip.dataset.client;
+        STATE.selectMode = false;
+        STATE.selectedKeys = new Set();
+        renderShell();
+      });
+    });
+  }
+
+  document.getElementById('prev-month').addEventListener('click', () => {
+    STATE.currentMonth = shiftMonth(STATE.currentMonth, -1);
+    STATE.selectMode = false;
+    STATE.selectedKeys = new Set();
+    renderCalendarTab(container);
+  });
+  document.getElementById('next-month').addEventListener('click', () => {
+    STATE.currentMonth = shiftMonth(STATE.currentMonth, 1);
+    STATE.selectMode = false;
+    STATE.selectedKeys = new Set();
+    renderCalendarTab(container);
+  });
+  document.getElementById('month-label').textContent =
+    monthLabel(STATE.currentMonth).charAt(0).toUpperCase() + monthLabel(STATE.currentMonth).slice(1);
+
+  await renderPostGrid();
+}
+
+async function renderPostGrid() {
+  const slot = document.getElementById('post-grid-slot');
+  const planSlot = document.getElementById('plan-bar-slot');
+  const clientId = STATE.currentClientId;
+  const session = STATE.session;
+
+  if (!clientId) {
+    slot.innerHTML = `<div class="empty-state"><div class="msg">No hay clientes cargados todavía.</div></div>`;
+    planSlot.innerHTML = '';
+    return;
+  }
+
+  const client = STATE.clients[clientId];
+  const family = client ? client.family : 'equipo';
+  let currentPlanId = await getMonthPlan(clientId, STATE.currentMonth);
+
+  // If no plan chosen yet for this month, fall back to the client's default plan and persist it
+  if (!currentPlanId && client && client.planDefault) {
+    currentPlanId = client.planDefault;
+    await setMonthPlan(clientId, STATE.currentMonth, currentPlanId);
+  }
+
+  const plan = currentPlanId ? STATE.plans[currentPlanId] : null;
+
+  const plansForFamily = Object.entries(STATE.plans).filter(([id, p]) => p.family === family);
+  const canEditPlan = session.role === 'admin';
+
+  let planSelectorHtml = '';
+  if (canEditPlan) {
+    planSelectorHtml = `
+      <div class="item">Plan de este mes:
+        <select id="plan-selector" style="margin-left:6px; font-weight:600; border:1.5px solid var(--arena-deep); border-radius:var(--radius); padding:5px 8px; background:#fff;">
+          <option value="">Sin elegir</option>
+          ${plansForFamily.map(([id, p]) => `<option value="${id}" ${id===currentPlanId?'selected':''}>${esc(p.name)} (${p.piezasFeed} feed + ${p.numHistorias} historias)</option>`).join('')}
+        </select>
+      </div>`;
+  } else {
+    planSelectorHtml = `<div class="item">Plan: <strong>${plan ? esc(plan.name) : 'Sin elegir'}</strong></div>`;
+  }
+
+  if (!plan) {
+    planSlot.innerHTML = `<div class="plan-bar">${planSelectorHtml}</div>`;
+    if (canEditPlan) {
+      document.getElementById('plan-selector').addEventListener('change', async (e) => {
+        await setMonthPlan(clientId, STATE.currentMonth, e.target.value || null);
+        renderPostGrid();
+      });
+    }
+    slot.innerHTML = `<div class="empty-state"><div class="msg">${canEditPlan ? 'Elegí un plan para este mes para generar el calendario.' : 'Todavía no se eligió un plan para este mes.'}</div></div>`;
+    return;
+  }
+
+  const posts = await ensureMonthPosts(clientId, STATE.currentMonth);
+  const historias = await ensureMonthHistorias(clientId, STATE.currentMonth);
+  const allItems = [...posts, ...historias];
+  const decididos = allItems.filter(p => ['aprobado'].includes(p.estadoCliente) || p.programado).length;
+  const pct = allItems.length ? Math.round((decididos / allItems.length) * 100) : 0;
+
+  let selectionBarHtml = '';
+  if (session.role === 'admin') {
+    if (!STATE.selectMode) {
+      selectionBarHtml = `
+        <div style="margin-bottom:16px;">
+          <button class="btn-sm" id="btn-enter-select">☑️ Seleccionar tarjetas</button>
+        </div>`;
+    } else {
+      const selCount = STATE.selectedKeys.size;
+      selectionBarHtml = `
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; background:#fff; border:1.5px solid var(--arena-deep); border-radius:var(--radius); padding:10px 14px;">
+          <strong style="font-size:13px;">${selCount} seleccionada${selCount!==1?'s':''}</strong>
+          <button class="btn-sm" id="btn-select-all">Seleccionar todas</button>
+          <button class="btn-sm" id="btn-select-none">Ninguna</button>
+          <button class="btn-sm danger" id="btn-delete-selected" ${selCount===0?'disabled':''} style="margin-left:auto;">🗑️ Eliminar seleccionadas</button>
+          <button class="btn-sm" id="btn-exit-select">Cancelar</button>
+        </div>`;
+    }
+  }
+
+  planSlot.innerHTML = `
+    ${selectionBarHtml}
+    <div class="plan-bar">
+      ${planSelectorHtml}
+      <div class="item"><strong>${posts.length}</strong> feed + <strong>${historias.length}</strong> historias</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="item"><strong>${pct}%</strong> aprobado</div>
+      ${session.role === 'admin' ? `
+        <button class="btn-sm" id="btn-import-excel" title="Agrega las filas del Excel a este mes, sin borrar lo que ya hay cargado">📥 Importar Excel</button>
+        <input type="file" id="import-excel-input" accept=".xlsx" style="display:none;">
+      ` : ''}
+    </div>
+  `;
+
+  if (canEditPlan) {
+    document.getElementById('plan-selector').addEventListener('change', async (e) => {
+      await setMonthPlan(clientId, STATE.currentMonth, e.target.value || null);
+      renderPostGrid();
+    });
+  }
+
+  if (session.role === 'admin') {
+    const importBtn = document.getElementById('btn-import-excel');
+    const importInput = document.getElementById('import-excel-input');
+    if (importBtn && importInput) {
+      importBtn.addEventListener('click', () => importInput.click());
+      importInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        await importExcelFile(file, clientId);
+        importInput.value = '';
+      });
+    }
+
+    const enterSelectBtn = document.getElementById('btn-enter-select');
+    if (enterSelectBtn) enterSelectBtn.addEventListener('click', () => {
+      STATE.selectMode = true;
+      STATE.selectedKeys = new Set();
+      renderPostGrid();
+    });
+    const exitSelectBtn = document.getElementById('btn-exit-select');
+    if (exitSelectBtn) exitSelectBtn.addEventListener('click', () => {
+      STATE.selectMode = false;
+      STATE.selectedKeys = new Set();
+      renderPostGrid();
+    });
+    const selectAllBtn = document.getElementById('btn-select-all');
+    if (selectAllBtn) selectAllBtn.addEventListener('click', () => {
+      STATE.selectedKeys = new Set([
+        ...posts.map((p, i) => `post:${i}`),
+        ...historias.map((h, i) => `historia:${i}`),
+      ]);
+      renderPostGrid();
+    });
+    const selectNoneBtn = document.getElementById('btn-select-none');
+    if (selectNoneBtn) selectNoneBtn.addEventListener('click', () => {
+      STATE.selectedKeys = new Set();
+      renderPostGrid();
+    });
+    const deleteSelectedBtn = document.getElementById('btn-delete-selected');
+    if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', async () => {
+      if (deleteSelectedBtn.dataset.confirming !== 'true') {
+        deleteSelectedBtn.dataset.confirming = 'true';
+        deleteSelectedBtn.textContent = '¿Seguro? Click de nuevo para borrar';
+        return;
+      }
+      await deleteSelectedCards(clientId, STATE.selectedKeys);
+      STATE.selectMode = false;
+      STATE.selectedKeys = new Set();
+      renderPostGrid();
+    });
+  }
+
+  const postsConFecha = posts.map((p, idx) => ({ item: p, idx, kind: 'post', fecha: p.fechaRealProgramacion || p.fechaPropuesta }))
+    .filter(x => x.fecha);
+  const postsSinFecha = posts.map((p, idx) => ({ item: p, idx })).filter(x => !(x.item.fechaRealProgramacion || x.item.fechaPropuesta));
+
+  const historiasConFecha = historias.map((h, idx) => ({ item: h, idx, kind: 'historia', fecha: h.fechaRealProgramacion || h.fechaSugerida }))
+    .filter(x => x.fecha);
+  const historiasSinFecha = historias.map((h, idx) => ({ item: h, idx })).filter(x => !(x.item.fechaRealProgramacion || x.item.fechaSugerida));
+
+  const cronologico = [...postsConFecha, ...historiasConFecha].sort((a, b) => a.fecha.localeCompare(b.fecha));
+
+  let html = '';
+
+  if (cronologico.length > 0) {
+    html += `<div class="section-title" style="font-size:15px;margin-bottom:12px;">Calendario ordenado</div>`;
+    html += `<div class="post-grid">${cronologico.map(x =>
+      x.kind === 'post' ? renderPostCard(x.item, x.idx, client) : renderHistoriaCard(x.item, x.idx)
+    ).join('')}</div>`;
+  }
+
+  if (postsSinFecha.length > 0) {
+    html += `<div class="section-title" style="font-size:15px;margin:32px 0 12px;">Feed — sin fecha todavía</div>`;
+    html += `<div class="post-grid">${postsSinFecha.map(x => renderPostCard(x.item, x.idx, client)).join('')}</div>`;
+  }
+
+  if (historiasSinFecha.length > 0) {
+    html += `<div class="section-title" style="font-size:15px;margin:32px 0 12px;">Historias — sin fecha todavía</div>`;
+    html += `<div class="post-grid">${historiasSinFecha.map(x => renderHistoriaCard(x.item, x.idx)).join('')}</div>`;
+  }
+
+  if (cronologico.length === 0 && postsSinFecha.length === 0 && historiasSinFecha.length === 0) {
+    html += `<div class="empty-state"><div class="msg">Este plan no incluye piezas todavía.</div></div>`;
+  }
+
+  slot.innerHTML = html;
+  attachPostCardHandlers(clientId);
+  attachHistoriaCardHandlers(clientId);
+
+  const revSlot = document.getElementById('revision-final-slot');
+  if (revSlot) {
+    if (session.role === 'client') {
+      const allItems = [...posts, ...historias];
+      const pendientes = allItems.filter(i => i.estadoCliente === 'revision').length;
+      const yaFinalizado = await storeGet(`revision_done:${clientId}:${STATE.currentMonth}`, true);
+
+      if (yaFinalizado) {
+        revSlot.innerHTML = `<div style="margin-top:24px;font-size:13px;color:var(--salvia);font-weight:600;">✓ Ya marcaste tu revisión de este mes como finalizada.</div>`;
+      } else {
+        revSlot.innerHTML = `
+          <div style="margin-top:24px;text-align:center;">
+            <button class="btn-sm primary" id="btn-revision-final" style="padding:12px 24px;font-size:14px;">Revisión finalizada</button>
+            ${pendientes > 0 ? `<div style="font-size:12px;color:var(--tierra);margin-top:8px;">Todavía tenés ${pendientes} ${pendientes===1?'pieza':'piezas'} sin revisar — podés finalizar igual.</div>` : ''}
+          </div>`;
+        document.getElementById('btn-revision-final').addEventListener('click', async () => {
+          await storeSet(`revision_done:${clientId}:${STATE.currentMonth}`, { at: new Date().toISOString() }, true);
+          await pushNotification({
+            forRole: 'admin',
+            type: 'revision_finalizada',
+            clientId, clientName: client.name, month: STATE.currentMonth,
+            text: `${client.name} finalizó su revisión de ${monthLabel(STATE.currentMonth)}`,
+          });
+          renderPostGrid();
+        });
+      }
+    } else if (session.role === 'admin') {
+      const yaFinalizado = await storeGet(`revision_done:${clientId}:${STATE.currentMonth}`, true);
+      if (yaFinalizado) {
+        revSlot.innerHTML = `
+          <div style="margin-top:20px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tierra-deep);">
+            <span>✓ El cliente ya marcó su revisión de este mes como finalizada.</span>
+            <button class="btn-sm" id="btn-reabrir-revision">Reabrir revisión</button>
+          </div>`;
+        document.getElementById('btn-reabrir-revision').addEventListener('click', async () => {
+          await storeDelete(`revision_done:${clientId}:${STATE.currentMonth}`, true);
+          renderPostGrid();
+        });
+      } else {
+        revSlot.innerHTML = '';
+      }
+    } else {
+      revSlot.innerHTML = '';
+    }
+  }
+}
+
+function linkIcon(url) {
+  if (!url) return '';
+  const lower = url.toLowerCase();
+  if (lower.includes('canva.com')) return '🎨';
+  if (lower.includes('capcut')) return '🎬';
+  return '🔗';
+}
+
+function renderPostCard(post, idx, client) {
+  const session = STATE.session;
+  const fecha = post.fechaPropuesta ? formatFechaCorta(post.fechaPropuesta) : 'Sin fecha';
+  const tipoInfo = TIPOS_CONTENIDO.find(t => t.id === post.tipo) || TIPOS_CONTENIDO[0];
+  const plataformaTag = post.plataforma === 'linkedin' ? ' · LinkedIn' : '';
+
+  // ===== Once programado (any role), show simplified card =====
+  if (post.programado) {
+    if (session.role === 'client') {
+      return `
+        <div class="post-card-collapsed is-programada" data-estado="programado" data-action="open-detail" data-idx="${idx}">
+          <span class="kind-tag">Post</span>
+          <div class="post-card-top">
+            <span class="post-date">${esc(fecha)}</span>
+            <span class="post-tipo" data-tipo="${post.tipo}">${esc(tipoInfo.label)}${plataformaTag}</span>
+          </div>
+          <span class="estado-badge" data-estado="programado">Publicado</span>
+          ${post.tipo === 'reel'
+            ? (postPrimaryLink(post) ? `<a class="post-link" href="${esc(postPrimaryLink(post))}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(postPrimaryLink(post))}">${linkIcon(postPrimaryLink(post))} Abrir y descargar</a>` : '')
+            : (post.linkDiseno ? `<a class="post-link" href="${esc(post.linkDiseno)}" target="_blank" rel="noopener" onclick="event.stopPropagation()" title="${esc(post.linkDiseno)}">${linkIcon(post.linkDiseno)} Abrir y descargar</a>` : '')}
+        </div>
+      `;
+    }
+  }
+
+  const propuestaPreview = post.propuestaContenido || post.caption || '';
+  const isEmpty = !propuestaPreview;
+  const estadoClienteInfo = ESTADOS_CLIENTE.find(e => e.id === post.estadoCliente) || ESTADOS_CLIENTE[0];
+  const isStaff = session.role === 'admin' || session.role === 'editor';
+  const unseenNotes = isStaff ? countUnseenNotes(post.notasInternas, session.username) : 0;
+  const notesIndicator = unseenNotes > 0
+    ? `<div class="unseen-note-badge">📝 ${unseenNotes} nota${unseenNotes>1?'s':''} nueva${unseenNotes>1?'s':''}</div>`
+    : '';
+
+  let disenoBadgeHtml = '';
+  if (isStaff && postHasDiseno(post)) {
+    if (post.estadoDiseno === 'aprobado') {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="aprobado">Diseño OK</span>`;
+    } else if (post.estadoDiseno === 'rechazado') {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="rechazado">Diseño a revisar</span>`;
+    } else {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="revision">Diseño pendiente</span>`;
+    }
+  }
+
+  const selectKey = `post:${idx}`;
+  const isSelectMode = session.role === 'admin' && STATE.selectMode;
+  const isSelected = STATE.selectedKeys.has(selectKey);
+  const checkboxHtml = isSelectMode
+    ? `<div class="select-checkbox ${isSelected ? 'checked' : ''}" data-select-key="${selectKey}">${isSelected ? '✓' : ''}</div>`
+    : '';
+
+  return `
+    <div class="post-card-collapsed ${post.programado ? 'is-programada' : ''} ${isSelectMode ? 'select-mode' : ''} ${isSelected ? 'is-selected' : ''}" data-estado="${post.estadoCliente}" ${isSelectMode ? `data-select-key="${selectKey}"` : `data-action="open-detail" data-idx="${idx}"`}>
+      ${checkboxHtml}
+      ${notesIndicator}
+      <span class="kind-tag">Post</span>
+      <div class="post-card-top">
+        <span class="post-date">${esc(fecha)}</span>
+        <span class="post-tipo" data-tipo="${post.tipo}">${esc(tipoInfo.label)}${plataformaTag}</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+        ${disenoBadgeHtml}
+        <span class="estado-badge" data-estado="${post.estadoCliente}">${esc(estadoClienteInfo.label)}</span>
+      </div>
+      <div class="collapsed-propuesta ${isEmpty ? 'empty' : ''}">${isEmpty ? 'Sin propuesta cargada todavía' : esc(propuestaPreview)}</div>
+      <div class="collapsed-hint">Ver detalle →</div>
+    </div>
+  `;
+}
+
+function renderHistoriaCard(h, idx) {
+  const session = STATE.session;
+  const fecha = h.fechaSugerida ? formatFechaCorta(h.fechaSugerida) : 'Sin fecha';
+  const textosPreview = (h.textos || []).filter(t => t && t.trim()).join(' · ');
+
+  if (h.programado && session.role === 'client') {
+    return `
+      <div class="post-card-collapsed historia-card is-programada" data-estado="programado" data-haction="open-detail" data-hidx="${idx}">
+        <span class="kind-tag">Historia</span>
+        <div class="post-card-top">
+          <span class="post-date">${esc(fecha)}</span>
+          <span class="post-tipo" data-tipo="story">${h.cantidadStories} ${h.cantidadStories === 1 ? 'story' : 'stories'}</span>
+        </div>
+        <span class="estado-badge" data-estado="programado">Publicado</span>
+      </div>
+    `;
+  }
+
+  const previewText = h.propuestaIdea || textosPreview || h.material || '';
+  const isEmpty = !previewText;
+  const estadoClienteInfo = ESTADOS_CLIENTE.find(e => e.id === h.estadoCliente) || ESTADOS_CLIENTE[0];
+  const isStaff = session.role === 'admin' || session.role === 'editor';
+  const unseenNotes = isStaff ? countUnseenNotes(h.notasInternas, session.username) : 0;
+  const notesIndicator = unseenNotes > 0
+    ? `<div class="unseen-note-badge">📝 ${unseenNotes} nota${unseenNotes>1?'s':''} nueva${unseenNotes>1?'s':''}</div>`
+    : '';
+
+  let disenoBadgeHtml = '';
+  if (isStaff && h.linkDiseno) {
+    if (h.estadoDiseno === 'aprobado') {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="aprobado">Diseño OK</span>`;
+    } else if (h.estadoDiseno === 'rechazado') {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="rechazado">Diseño a revisar</span>`;
+    } else {
+      disenoBadgeHtml = `<span class="estado-badge" data-estado="revision">Diseño pendiente</span>`;
+    }
+  }
+
+  const selectKey = `historia:${idx}`;
+  const isSelectMode = session.role === 'admin' && STATE.selectMode;
+  const isSelected = STATE.selectedKeys.has(selectKey);
+  const checkboxHtml = isSelectMode
+    ? `<div class="select-checkbox ${isSelected ? 'checked' : ''}" data-select-key="${selectKey}">${isSelected ? '✓' : ''}</div>`
+    : '';
+
+  return `
+    <div class="post-card-collapsed historia-card ${h.programado ? 'is-programada' : ''} ${isSelectMode ? 'select-mode' : ''} ${isSelected ? 'is-selected' : ''}" data-estado="${h.estadoCliente}" ${isSelectMode ? `data-select-key="${selectKey}"` : `data-haction="open-detail" data-hidx="${idx}"`}>
+      ${checkboxHtml}
+      ${notesIndicator}
+      <span class="kind-tag">Historia</span>
+      <div class="post-card-top">
+        <span class="post-date">${esc(fecha)}</span>
+        <span class="post-tipo" data-tipo="story">${h.cantidadStories} ${h.cantidadStories === 1 ? 'story' : 'stories'}</span>
+      </div>
+      <div style="display:flex; flex-wrap:wrap; gap:4px;">
+        ${disenoBadgeHtml}
+        <span class="estado-badge" data-estado="${h.estadoCliente}">${esc(estadoClienteInfo.label)}</span>
+      </div>
+      <div class="collapsed-propuesta ${isEmpty ? 'empty' : ''}">${isEmpty ? 'Sin contenido cargado todavía' : esc(previewText)}</div>
+      <div class="collapsed-hint">Ver detalle →</div>
+    </div>
+  `;
+}
+
+function attachHistoriaCardHandlers(clientId) {
+  document.querySelectorAll('[data-haction="open-detail"]').forEach(card => {
+    card.addEventListener('click', () => openHistoriaDetailModal(clientId, parseInt(card.dataset.hidx, 10)));
+  });
+  document.querySelectorAll('.post-card-collapsed.select-mode[data-select-key]').forEach(card => {
+    card.addEventListener('click', () => toggleSelectKey(card.dataset.selectKey));
+  });
+}
+
+async function approveHistoriaDiseno(clientId, idx) {
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  if (historias[idx].estadoDiseno !== 'aprobado') {
+    historias[idx].estadoDiseno = 'aprobado';
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+    const client = STATE.clients[clientId];
+    const fechaTxt = historias[idx].fechaSugerida ? formatFechaCorta(historias[idx].fechaSugerida) : 'sin fecha';
+    await pushNotification({
+      forRole: 'editor', type: 'diseno_aprobado', clientId, month: STATE.currentMonth, kind: 'historia', itemIdx: idx,
+      text: `${client.name} · ${fechaTxt} · Cata aprobó tu diseño de historia`,
+    });
+  } else {
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+  }
+  renderPostGrid();
+}
+
+async function rejectHistoriaDiseno(clientId, idx) {
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  if (historias[idx].estadoDiseno !== 'rechazado') {
+    historias[idx].estadoDiseno = 'rechazado';
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+    const client = STATE.clients[clientId];
+    const fechaTxt = historias[idx].fechaSugerida ? formatFechaCorta(historias[idx].fechaSugerida) : 'sin fecha';
+    await pushNotification({
+      forRole: 'editor', type: 'diseno_rechazado', clientId, month: STATE.currentMonth, kind: 'historia', itemIdx: idx,
+      text: `${client.name} · ${fechaTxt} · Cata pidió revisar la historia`,
+    });
+  } else {
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+  }
+  renderPostGrid();
+}
+
+async function historiaClientDecision(clientId, idx, approved) {
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  if (approved) {
+    historias[idx].estadoCliente = 'aprobado';
+    historias[idx].feedbackCliente = '';
+  }
+  await saveHistorias(clientId, STATE.currentMonth, historias);
+  renderPostGrid();
+}
+
+function formatFechaCorta(iso) {
+  if (!iso) return '';
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function attachPostCardHandlers(clientId) {
+  document.querySelectorAll('[data-action="open-detail"]').forEach(card => {
+    card.addEventListener('click', () => openPostDetailModal(clientId, parseInt(card.dataset.idx, 10)));
+  });
+  document.querySelectorAll('.post-card-collapsed.select-mode[data-select-key]').forEach(card => {
+    card.addEventListener('click', () => toggleSelectKey(card.dataset.selectKey));
+  });
+}
+
+function toggleSelectKey(key) {
+  if (STATE.selectedKeys.has(key)) {
+    STATE.selectedKeys.delete(key);
+  } else {
+    STATE.selectedKeys.add(key);
+  }
+  renderPostGrid();
+}
+
+async function approveDiseno(clientId, idx) {
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  if (posts[idx].estadoDiseno !== 'aprobado') {
+    posts[idx].estadoDiseno = 'aprobado';
+    await savePosts(clientId, STATE.currentMonth, posts);
+    const client = STATE.clients[clientId];
+    const fechaTxt = posts[idx].fechaPropuesta ? formatFechaCorta(posts[idx].fechaPropuesta) : 'sin fecha';
+    await pushNotification({
+      forRole: 'editor', type: 'diseno_aprobado', clientId, month: STATE.currentMonth, kind: 'post', itemIdx: idx,
+      text: `${client.name} · ${fechaTxt} · Cata aprobó tu diseño`,
+    });
+  } else {
+    await savePosts(clientId, STATE.currentMonth, posts);
+  }
+  renderPostGrid();
+}
+
+async function rejectDiseno(clientId, idx) {
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  if (posts[idx].estadoDiseno !== 'rechazado') {
+    posts[idx].estadoDiseno = 'rechazado';
+    await savePosts(clientId, STATE.currentMonth, posts);
+    const client = STATE.clients[clientId];
+    const fechaTxt = posts[idx].fechaPropuesta ? formatFechaCorta(posts[idx].fechaPropuesta) : 'sin fecha';
+    await pushNotification({
+      forRole: 'editor', type: 'diseno_rechazado', clientId, month: STATE.currentMonth, kind: 'post', itemIdx: idx,
+      text: `${client.name} · ${fechaTxt} · Cata pidió revisar el diseño`,
+    });
+  } else {
+    await savePosts(clientId, STATE.currentMonth, posts);
+  }
+  renderPostGrid();
+}
+
+async function clientDecision(clientId, idx, approved) {
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  if (approved) {
+    posts[idx].estadoCliente = 'aprobado';
+    posts[idx].feedbackCliente = '';
+  }
+  await savePosts(clientId, STATE.currentMonth, posts);
+  renderPostGrid();
+}
+
+/* ============================================================
+   MODAL: detail view (read-only, opened by clicking a card)
+   ============================================================ */
+async function openPostDetailModal(clientId, idx) {
+  ensureModalRoot();
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  const post = posts[idx];
+  const session = STATE.session;
+  const isStaff = session.role === 'admin' || session.role === 'editor';
+  const estadoClienteInfo = ESTADOS_CLIENTE.find(e => e.id === post.estadoCliente) || ESTADOS_CLIENTE[0];
+  const tipoInfo = TIPOS_CONTENIDO.find(t => t.id === post.tipo) || TIPOS_CONTENIDO[0];
+  const fecha = post.fechaPropuesta ? formatFechaCorta(post.fechaPropuesta) : 'Sin fecha';
+  const plataformaTag = post.plataforma === 'linkedin' ? ' · LinkedIn' : '';
+
+  let estadoTags = `<span class="estado-badge" data-estado="${post.programado ? 'programado' : post.estadoCliente}">${post.programado ? 'Programado' : esc(estadoClienteInfo.label)}</span>`;
+  if (isStaff && post.estadoDiseno === 'aprobado') {
+    estadoTags += `<span class="estado-badge" data-estado="aprobado" style="margin-left:6px;">Diseño OK</span>`;
+  } else if (isStaff && post.estadoDiseno === 'rechazado') {
+    estadoTags += `<span class="estado-badge" data-estado="rechazado" style="margin-left:6px;">Diseño a revisar</span>`;
+  }
+
+  const feedbackHtml = post.feedbackCliente
+    ? `<div class="feedback-box" style="margin-top:6px;">"${esc(post.feedbackCliente)}"</div>`
+    : '';
+
+  let staffOnlyHtml = '';
+  if (isStaff) {
+    staffOnlyHtml = `
+      ${post.idRemax ? `<div class="modal-field"><label>ID REMAX</label><div style="font-family:var(--font-mono);font-size:13px;">${esc(post.idRemax)}</div></div>` : ''}
+      ${post.material ? `<div class="modal-field"><label>Material para Tamy</label><div style="font-size:13px;white-space:pre-wrap;">${linkify(post.material)}</div></div>` : ''}
+    `;
+  }
+
+  let actionsHtml = '';
+  if (session.role === 'admin') {
+    actionsHtml += `<button class="btn-sm primary" id="d-edit">Editar</button>`;
+    if (postHasDiseno(post)) {
+      if (post.estadoDiseno !== 'aprobado') {
+        actionsHtml += `<button class="btn-sm approve" id="d-approve-diseno">Aprobar diseño</button>`;
+      }
+      if (post.estadoDiseno !== 'rechazado') {
+        actionsHtml += `<button class="btn-sm reject" id="d-reject-diseno">Pedir que revise</button>`;
+      }
+    }
+    if (post.tipo === 'reel') {
+      if (post.linkPortada) actionsHtml += `<a class="post-link" href="${esc(post.linkPortada)}" target="_blank" rel="noopener">${linkIcon(post.linkPortada)} Ver portada</a>`;
+      if (post.linkVideo) actionsHtml += `<a class="post-link" href="${esc(post.linkVideo)}" target="_blank" rel="noopener">${linkIcon(post.linkVideo)} Ver video</a>`;
+    } else if (post.linkDiseno) {
+      actionsHtml += `<a class="post-link" href="${esc(post.linkDiseno)}" target="_blank" rel="noopener">${linkIcon(post.linkDiseno)} Revisar diseño</a>`;
+    }
+    actionsHtml += `<button class="btn-sm" id="d-notes">📝 ${post.notasInternas && post.notasInternas.length ? `Notas (${post.notasInternas.length})` : 'Agregar nota'}</button>`;
+  } else if (session.role === 'editor') {
+    actionsHtml += `<button class="btn-sm primary" id="d-edit">Completar / programar</button>`;
+    actionsHtml += `<button class="btn-sm" id="d-notes">📝 ${post.notasInternas && post.notasInternas.length ? `Notas (${post.notasInternas.length})` : 'Agregar nota'}</button>`;
+  } else if (session.role === 'client') {
+    if (post.estadoCliente === 'revision') {
+      actionsHtml += `<button class="btn-sm approve" id="d-approve">Aprobar</button>`;
+      actionsHtml += `<button class="btn-sm reject" id="d-reject">Rechazar / pedir cambios</button>`;
+    }
+  }
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Detalle de la publicación</div>
+        <div class="modal-grid-2">
+          <div class="modal-field"><label>Fecha propuesta</label><div style="font-size:13px;">${esc(fecha)}</div></div>
+          <div class="modal-field"><label>Tipo</label><div style="font-size:13px;">${esc(tipoInfo.label)}${plataformaTag}</div></div>
+        </div>
+        <div class="modal-field">${estadoTags}${feedbackHtml}</div>
+        ${staffOnlyHtml}
+        <div class="modal-field"><label>Propuesta de contenido</label><div style="font-size:13px;white-space:pre-wrap;">${post.propuestaContenido ? esc(post.propuestaContenido) : '<span style="color:var(--tierra);font-style:italic;">Sin propuesta cargada</span>'}</div></div>
+        <div class="modal-field"><label>Caption</label><div style="font-size:13px;white-space:pre-wrap;">${post.caption ? esc(post.caption) : '<span style="color:var(--tierra);font-style:italic;">Sin caption cargado</span>'}</div></div>
+        ${post.programado ? `<div style="font-size:12px;color:var(--salvia);font-weight:600;">Programado: ${formatFechaCorta(post.fechaRealProgramacion)}</div>` : ''}
+        ${session.role === 'client' && post.tipo === 'reel' ? `
+          ${post.linkPortada ? `<div class="modal-field"><a class="post-link" href="${esc(post.linkPortada)}" target="_blank" rel="noopener">${linkIcon(post.linkPortada)} Descargar portada</a></div>` : ''}
+          ${post.linkVideo ? `<div class="modal-field"><a class="post-link" href="${esc(post.linkVideo)}" target="_blank" rel="noopener">${linkIcon(post.linkVideo)} Descargar video</a></div>` : ''}
+        ` : (session.role === 'client' && post.linkDiseno ? `<div class="modal-field"><a class="post-link" href="${esc(post.linkDiseno)}" target="_blank" rel="noopener">${linkIcon(post.linkDiseno)} Abrir y descargar</a></div>` : '')}
+        <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+          ${actionsHtml}
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id === 'modal-overlay') closeModal(); });
+
+  const editBtn = document.getElementById('d-edit');
+  if (editBtn) editBtn.addEventListener('click', () => openEditModal(clientId, idx));
+  const approveDisenoBtn = document.getElementById('d-approve-diseno');
+  if (approveDisenoBtn) approveDisenoBtn.addEventListener('click', async () => { await approveDiseno(clientId, idx); closeModal(); });
+  const rejectDisenoBtn = document.getElementById('d-reject-diseno');
+  if (rejectDisenoBtn) rejectDisenoBtn.addEventListener('click', async () => { await rejectDiseno(clientId, idx); closeModal(); });
+  const notesBtn = document.getElementById('d-notes');
+  if (notesBtn) notesBtn.addEventListener('click', () => openNotesModal(clientId, idx));
+  const approveBtn = document.getElementById('d-approve');
+  if (approveBtn) approveBtn.addEventListener('click', async () => { await clientDecision(clientId, idx, true); closeModal(); });
+  const rejectBtn = document.getElementById('d-reject');
+  if (rejectBtn) rejectBtn.addEventListener('click', () => openFeedbackModal(clientId, idx));
+}
+
+async function openHistoriaDetailModal(clientId, idx) {
+  ensureModalRoot();
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  const h = historias[idx];
+  const session = STATE.session;
+  const isStaff = session.role === 'admin' || session.role === 'editor';
+  const estadoClienteInfo = ESTADOS_CLIENTE.find(e => e.id === h.estadoCliente) || ESTADOS_CLIENTE[0];
+  const fecha = h.fechaSugerida ? formatFechaCorta(h.fechaSugerida) : 'Sin fecha';
+
+  let estadoTags = `<span class="estado-badge" data-estado="${h.programado ? 'programado' : h.estadoCliente}">${h.programado ? 'Programado' : esc(estadoClienteInfo.label)}</span>`;
+  if (isStaff && h.estadoDiseno === 'aprobado') {
+    estadoTags += `<span class="estado-badge" data-estado="aprobado" style="margin-left:6px;">Diseño OK</span>`;
+  } else if (isStaff && h.estadoDiseno === 'rechazado') {
+    estadoTags += `<span class="estado-badge" data-estado="rechazado" style="margin-left:6px;">Diseño a revisar</span>`;
+  }
+
+  const feedbackHtml = h.feedbackCliente
+    ? `<div class="feedback-box" style="margin-top:6px;">"${esc(h.feedbackCliente)}"</div>`
+    : '';
+
+  const textosHtml = (h.textos || []).map((t, i) => `
+    <div style="margin-bottom:6px;"><strong style="font-size:11px;color:var(--tierra-deep);">Story ${i+1}:</strong> <span style="font-size:13px;">${t ? esc(t) : '<span style="color:var(--tierra);font-style:italic;">sin texto</span>'}</span></div>
+  `).join('');
+
+  let staffOnlyHtml = '';
+  if (isStaff && h.material) {
+    staffOnlyHtml = `<div class="modal-field"><label>Material para Tamy</label><div style="font-size:13px;white-space:pre-wrap;">${linkify(h.material)}</div></div>`;
+  }
+
+  let actionsHtml = '';
+  if (session.role === 'admin') {
+    actionsHtml += `<button class="btn-sm primary" id="d-edit">Editar</button>`;
+    if (h.linkDiseno) {
+      if (h.estadoDiseno !== 'aprobado') {
+        actionsHtml += `<button class="btn-sm approve" id="d-approve-diseno">Aprobar diseño</button>`;
+      }
+      if (h.estadoDiseno !== 'rechazado') {
+        actionsHtml += `<button class="btn-sm reject" id="d-reject-diseno">Pedir que revise</button>`;
+      }
+      actionsHtml += `<a class="post-link" href="${esc(h.linkDiseno)}" target="_blank" rel="noopener">${linkIcon(h.linkDiseno)} Revisar diseño</a>`;
+    }
+    actionsHtml += `<button class="btn-sm" id="d-notes">📝 ${h.notasInternas && h.notasInternas.length ? `Notas (${h.notasInternas.length})` : 'Agregar nota'}</button>`;
+  } else if (session.role === 'editor') {
+    actionsHtml += `<button class="btn-sm primary" id="d-edit">Programar</button>`;
+    actionsHtml += `<button class="btn-sm" id="d-notes">📝 ${h.notasInternas && h.notasInternas.length ? `Notas (${h.notasInternas.length})` : 'Agregar nota'}</button>`;
+  } else if (session.role === 'client') {
+    if (h.estadoCliente === 'revision') {
+      actionsHtml += `<button class="btn-sm approve" id="d-approve">Aprobar</button>`;
+      actionsHtml += `<button class="btn-sm reject" id="d-reject">Rechazar / pedir cambios</button>`;
+    }
+  }
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Detalle de la historia</div>
+        <div class="modal-grid-2">
+          <div class="modal-field"><label>Fecha sugerida</label><div style="font-size:13px;">${esc(fecha)}</div></div>
+          <div class="modal-field"><label>Stories en esta tanda</label><div style="font-size:13px;">${h.cantidadStories}</div></div>
+        </div>
+        <div class="modal-field">${estadoTags}${feedbackHtml}</div>
+        ${staffOnlyHtml}
+        <div class="modal-field"><label>Propuesta de la idea</label><div style="font-size:14px;font-weight:600;">${h.propuestaIdea ? esc(h.propuestaIdea) : '<span style="color:var(--tierra);font-style:italic;font-weight:400;">Sin propuesta cargada</span>'}</div></div>
+        <div class="modal-field"><label>Texto sugerido</label>${textosHtml}</div>
+        ${h.programado ? `<div style="font-size:12px;color:var(--salvia);font-weight:600;">Programado: ${formatFechaCorta(h.fechaRealProgramacion)}</div>` : ''}
+        <div class="modal-actions" style="justify-content:flex-start;flex-wrap:wrap;">
+          ${actionsHtml}
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id === 'modal-overlay') closeModal(); });
+
+  const editBtn = document.getElementById('d-edit');
+  if (editBtn) editBtn.addEventListener('click', () => openHistoriaEditModal(clientId, idx));
+  const approveDisenoBtn = document.getElementById('d-approve-diseno');
+  if (approveDisenoBtn) approveDisenoBtn.addEventListener('click', async () => { await approveHistoriaDiseno(clientId, idx); closeModal(); });
+  const rejectDisenoBtn = document.getElementById('d-reject-diseno');
+  if (rejectDisenoBtn) rejectDisenoBtn.addEventListener('click', async () => { await rejectHistoriaDiseno(clientId, idx); closeModal(); });
+  const notesBtn = document.getElementById('d-notes');
+  if (notesBtn) notesBtn.addEventListener('click', () => openHistoriaNotesModal(clientId, idx));
+  const approveBtn = document.getElementById('d-approve');
+  if (approveBtn) approveBtn.addEventListener('click', async () => { await historiaClientDecision(clientId, idx, true); closeModal(); });
+  const rejectBtn = document.getElementById('d-reject');
+  if (rejectBtn) rejectBtn.addEventListener('click', () => openHistoriaFeedbackModal(clientId, idx));
+}
+
+/* ============================================================
+   MODAL: edit post (admin/editor)
+   ============================================================ */
+function ensureModalRoot() {
+  if (document.getElementById('modal-root')) return;
+  const div = document.createElement('div');
+  div.id = 'modal-root';
+  document.body.appendChild(div);
+}
+
+async function openEditModal(clientId, idx) {
+  ensureModalRoot();
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  const post = posts[idx];
+  const client = STATE.clients[clientId];
+  const allowLinkedin = client && client.allowLinkedin;
+  const session = STATE.session;
+  const isEditor = session.role === 'editor';
+  const isLocked = post.programado && isEditor; // editor can't touch a programada card anymore
+
+  const ro = isEditor ? 'disabled' : ''; // readonly fields for editor (content fields)
+  const lockAll = isLocked ? 'disabled' : ''; // total lock for editor once programado
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">${isEditor ? 'Completar publicación' : 'Editar publicación'}</div>
+        ${isLocked ? `<div style="background:#EAF3DE;border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--tierra-deep);margin-bottom:16px;">Esta tarjeta ya está programada. Solo Cata puede modificarla.</div>` : ''}
+        <div class="modal-grid-2">
+          <div class="modal-field">
+            <label>Fecha propuesta</label>
+            <input type="date" id="m-fecha" value="${esc(post.fechaPropuesta)}" ${ro} ${lockAll}>
+          </div>
+          <div class="modal-field">
+            <label>Tipo de contenido</label>
+            <select id="m-tipo" ${ro} ${lockAll}>
+              ${TIPOS_CONTENIDO.map(t => `<option value="${t.id}" ${post.tipo===t.id?'selected':''}>${t.label}</option>`).join('')}
+            </select>
+          </div>
+          ${allowLinkedin ? `
+          <div class="modal-field">
+            <label>Plataforma de destino</label>
+            <select id="m-plataforma" ${ro} ${lockAll}>
+              <option value="instagram" ${post.plataforma!=='linkedin'?'selected':''}>Instagram</option>
+              <option value="linkedin" ${post.plataforma==='linkedin'?'selected':''}>LinkedIn</option>
+            </select>
+          </div>` : ''}
+        </div>
+        <div style="border-top:1.5px solid var(--arena-deep);padding-top:14px;margin-top:6px;">
+          <div style="font-size:12px;font-weight:700;color:var(--tierra-deep);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px;">Propuesta de contenido</div>
+          <div class="modal-field">
+            <label>Guión / contenido por slide (qué va en cada foto del carrusel, o texto en pantalla del reel)</label>
+            <textarea id="m-propuesta" ${ro} ${lockAll} placeholder="Ej: Slide 1: fachada — Slide 2: living — Slide 3: precio...">${esc(post.propuestaContenido)}</textarea>
+          </div>
+          <div class="modal-grid-2">
+            <div class="modal-field">
+              <label>ID REMAX (si es sobre una propiedad en cartera)</label>
+              <input type="text" id="m-idremax" ${ro} ${lockAll} placeholder="Ej: 421123456-10" value="${esc(post.idRemax)}">
+            </div>
+          </div>
+          <div class="modal-field">
+            <label>Material para Tamy (links o descripción de qué usar)</label>
+            <textarea id="m-material" ${ro} ${lockAll} placeholder="Ej: https://drive.google.com/... o 'usar las fotos del living que mandé por WhatsApp'" style="min-height:60px;">${esc(post.material)}</textarea>
+          </div>
+        </div>
+        <div class="modal-field">
+          <label>Caption</label>
+          <textarea id="m-caption" ${ro} ${lockAll} style="min-height:120px;">${esc(post.caption)}</textarea>
+        </div>
+        ${post.tipo === 'reel' ? `
+        <div class="modal-grid-2">
+          <div class="modal-field">
+            <label>${post.programado ? 'Link Drive — portada (descarga final)' : 'Link portada (Canva)'}</label>
+            <input type="text" id="m-link-portada" placeholder="https://..." value="${esc(post.linkPortada)}" ${lockAll}>
+          </div>
+          <div class="modal-field">
+            <label>${post.programado ? 'Link Drive — video (descarga final)' : 'Link video (CapCut)'}</label>
+            <input type="text" id="m-link-video" placeholder="https://..." value="${esc(post.linkVideo)}" ${lockAll}>
+          </div>
+        </div>
+        ${!post.programado ? `<div style="font-size:11px;color:var(--tierra);margin-top:-8px;margin-bottom:10px;">Al programar, reemplazá estos por los links de Drive — el cliente los necesita para descargar (Canva no le permite bajar elementos Pro).</div>` : ''}` : `
+        <div class="modal-field">
+          <label>${post.programado ? 'Link Drive (descarga final para el cliente)' : 'Link de diseño final (Canva / CapCut)'}</label>
+          <input type="text" id="m-link" placeholder="https://..." value="${esc(post.linkDiseno)}" ${lockAll}>
+          ${!post.programado ? `<div style="font-size:11px;color:var(--tierra);margin-top:6px;">Al programar, reemplazá este link por el de Drive — el cliente lo necesita para descargar (Canva no le permite bajar elementos Pro).</div>` : ''}
+        </div>`}
+        ${!isEditor ? `
+        <div class="modal-field">
+          <label><input type="checkbox" id="m-diseno-ok" style="width:auto;margin-right:6px;" ${post.estadoDiseno==='aprobado'?'checked':''}> Diseño aprobado por mí</label>
+        </div>` : ''}
+        <div class="modal-grid-2">
+          <div class="modal-field">
+            <label>Estado</label>
+            <select id="m-estado" ${lockAll}>
+              ${isEditor ? `
+                <option value="revision" ${post.estadoCliente==='revision'?'selected':''} disabled>En revisión (cliente)</option>
+                <option value="aprobado" ${post.estadoCliente==='aprobado'?'selected':''} disabled>Aprobado (cliente)</option>
+                <option value="rechazado" ${post.estadoCliente==='rechazado'?'selected':''} disabled>Rechazado (cliente)</option>
+                <option value="programado" ${post.programado?'selected':''}>Programado</option>
+              ` : `
+                ${ESTADOS_CLIENTE.map(e => `<option value="${e.id}" ${post.estadoCliente===e.id && !post.programado?'selected':''}>${e.label}</option>`).join('')}
+                <option value="programado" ${post.programado?'selected':''}>Programado</option>
+              `}
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Fecha real de programación</label>
+            <input type="date" id="m-fechareal" value="${esc(post.fechaRealProgramacion)}" ${lockAll}>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          ${!isEditor ? `<button class="btn-sm danger" id="m-reset">Resetear tarjeta</button>` : ''}
+          ${!isLocked ? `<button class="btn-sm primary" id="m-save">Guardar cambios</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  const saveBtn = document.getElementById('m-save');
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
+    const estadoSel = document.getElementById('m-estado').value;
+    const estadoDisenoAnterior = post.estadoDiseno;
+    const disenoCompletoAntes = postHasDiseno(post);
+
+    if (!isEditor) {
+      post.fechaPropuesta = document.getElementById('m-fecha').value;
+      post.tipo = document.getElementById('m-tipo').value;
+      post.plataforma = document.getElementById('m-plataforma') ? document.getElementById('m-plataforma').value : 'instagram';
+      post.propuestaContenido = document.getElementById('m-propuesta').value;
+      post.idRemax = document.getElementById('m-idremax').value.trim();
+      post.material = document.getElementById('m-material').value;
+      post.caption = document.getElementById('m-caption').value;
+      post.estadoDiseno = document.getElementById('m-diseno-ok').checked ? 'aprobado' : 'pendiente';
+      post.estadoCliente = estadoSel === 'programado' ? post.estadoCliente : estadoSel;
+    }
+
+    if (post.tipo === 'reel') {
+      const linkPortadaEl = document.getElementById('m-link-portada');
+      const linkVideoEl = document.getElementById('m-link-video');
+      if (linkPortadaEl) post.linkPortada = linkPortadaEl.value.trim();
+      if (linkVideoEl) post.linkVideo = linkVideoEl.value.trim();
+    } else {
+      const linkEl = document.getElementById('m-link');
+      if (linkEl) post.linkDiseno = linkEl.value.trim();
+    }
+
+    post.fechaRealProgramacion = document.getElementById('m-fechareal').value;
+    post.programado = estadoSel === 'programado';
+
+    posts[idx] = post;
+    await savePosts(clientId, STATE.currentMonth, posts);
+
+    const client = STATE.clients[clientId];
+    const fechaTxt = post.fechaPropuesta ? formatFechaCorta(post.fechaPropuesta) : 'sin fecha';
+
+    if (!isEditor && post.estadoDiseno !== estadoDisenoAnterior) {
+      if (post.estadoDiseno === 'aprobado') {
+        await pushNotification({
+          forRole: 'editor', type: 'diseno_aprobado', clientId, month: STATE.currentMonth, kind: 'post', itemIdx: idx,
+          text: `${client.name} · ${fechaTxt} · Cata aprobó tu diseño`,
+        });
+      } else {
+        await pushNotification({
+          forRole: 'editor', type: 'diseno_rechazado', clientId, month: STATE.currentMonth, kind: 'post', itemIdx: idx,
+          text: `${client.name} · ${fechaTxt} · Cata pidió revisar el diseño`,
+        });
+      }
+    }
+
+    if (isEditor && postHasDiseno(post) && !disenoCompletoAntes) {
+      await pushNotification({
+        forRole: 'admin', type: 'diseno_para_revisar', clientId, month: STATE.currentMonth, kind: 'post', itemIdx: idx,
+        text: `${client.name} · ${fechaTxt} · Tamy cargó un diseño para revisar`,
+      });
+    }
+
+    closeModal();
+    renderPostGrid();
+  });
+
+  const resetBtn = document.getElementById('m-reset');
+  if (resetBtn) resetBtn.addEventListener('click', async (e) => {
+    if (resetBtn.dataset.confirming !== 'true') {
+      resetBtn.dataset.confirming = 'true';
+      resetBtn.textContent = '¿Seguro? Click de nuevo';
+      return;
+    }
+    const fresh = await getPosts(clientId, STATE.currentMonth);
+    fresh[idx] = emptyPost(idx);
+    await savePosts(clientId, STATE.currentMonth, fresh);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+function openFeedbackModal(clientId, idx) {
+  ensureModalRoot();
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Rechazar / pedir cambios</div>
+        <div class="modal-field">
+          <label>Contanos qué te gustaría ajustar</label>
+          <textarea id="m-fb" placeholder="Ej: preferiría que el enfoque sea más sobre..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          <button class="btn-sm primary" id="m-send">Enviar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  document.getElementById('m-send').addEventListener('click', async () => {
+    const fb = document.getElementById('m-fb').value.trim();
+    const posts = await getPosts(clientId, STATE.currentMonth);
+    posts[idx].feedbackCliente = fb;
+    posts[idx].estadoCliente = 'rechazado';
+    await savePosts(clientId, STATE.currentMonth, posts);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+function formatFechaHora(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-AR') + ' ' + d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function openNotesModal(clientId, idx) {
+  ensureModalRoot();
+  const posts = await getPosts(clientId, STATE.currentMonth);
+  const post = posts[idx];
+  const notas = post.notasInternas || [];
+  const session = STATE.session;
+
+  // Mark all notes as seen by current user
+  let changed = false;
+  notas.forEach(n => {
+    if (!n.vistoPor) n.vistoPor = [];
+    if (!n.vistoPor.includes(session.username)) {
+      n.vistoPor.push(session.username);
+      changed = true;
+    }
+  });
+  if (changed) await savePosts(clientId, STATE.currentMonth, posts);
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Notas internas</div>
+        <div style="margin-bottom:18px; max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+          ${notas.length === 0 ? '<div style="font-size:13px;color:var(--tierra);font-style:italic;">Todavía no hay notas en esta publicación.</div>' : ''}
+          ${notas.map(n => `
+            <div style="background:var(--arena);border-radius:var(--radius);padding:10px 12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--tierra-deep);margin-bottom:3px;">${esc(n.author)} · ${formatFechaHora(n.date)}</div>
+              <div style="font-size:13px;color:var(--tinta);">${esc(n.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="modal-field">
+          <label>Agregar nota</label>
+          <textarea id="m-newnote" placeholder="Ej: falta foto de portada, pendiente confirmar precio con dueño..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cerrar</button>
+          <button class="btn-sm primary" id="m-addnote">Agregar nota</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', () => { closeModal(); renderPostGrid(); });
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') { closeModal(); renderPostGrid(); }
+  });
+  document.getElementById('m-addnote').addEventListener('click', async () => {
+    const text = document.getElementById('m-newnote').value.trim();
+    if (!text) return;
+    const freshPosts = await getPosts(clientId, STATE.currentMonth);
+    if (!freshPosts[idx].notasInternas) freshPosts[idx].notasInternas = [];
+    freshPosts[idx].notasInternas.push({ author: session.name, date: new Date().toISOString(), text, vistoPor: [session.username] });
+    await savePosts(clientId, STATE.currentMonth, freshPosts);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+function closeModal() {
+  const root = document.getElementById('modal-root');
+  if (root) root.innerHTML = '';
+}
+
+/* ============================================================
+   MODALS: historia (admin/editor + client)
+   ============================================================ */
+function renderTextosFields(textos, disabledAttr) {
+  const dis = disabledAttr || '';
+  return textos.map((t, i) => `
+    <div class="modal-field">
+      <label>Texto sugerido — story ${i + 1}</label>
+      <textarea data-texto-idx="${i}" class="texto-story-input" style="min-height:50px;" ${dis}>${esc(t)}</textarea>
+    </div>
+  `).join('');
+}
+
+async function openHistoriaEditModal(clientId, idx) {
+  ensureModalRoot();
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  const h = historias[idx];
+  const session = STATE.session;
+  const isEditor = session.role === 'editor';
+  const isLocked = h.programado && isEditor;
+
+  const ro = isEditor ? 'disabled' : '';
+  const lockAll = isLocked ? 'disabled' : '';
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">${isEditor ? 'Programar historia' : 'Editar historia'}</div>
+        ${isLocked ? `<div style="background:#EAF3DE;border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--tierra-deep);margin-bottom:16px;">Esta historia ya está programada. Solo Cata puede modificarla.</div>` : ''}
+        <div class="modal-field">
+          <label>Propuesta de la idea (título corto, lo ve el cliente)</label>
+          <input type="text" id="h-propuesta" placeholder="Ej: Mostrar el living con luz natural" value="${esc(h.propuestaIdea)}" ${ro} ${lockAll}>
+        </div>
+        <div class="modal-grid-2">
+          <div class="modal-field">
+            <label>Fecha sugerida</label>
+            <input type="date" id="h-fecha" value="${esc(h.fechaSugerida)}" ${ro} ${lockAll}>
+          </div>
+          <div class="modal-field">
+            <label>Stories en esta tanda</label>
+            <select id="h-cantidad" ${ro} ${lockAll}>
+              <option value="1" ${h.cantidadStories===1?'selected':''}>1 story</option>
+              <option value="2" ${h.cantidadStories===2?'selected':''}>2 stories seguidas</option>
+              <option value="3" ${h.cantidadStories===3?'selected':''}>3 stories seguidas</option>
+            </select>
+          </div>
+        </div>
+        <div id="h-textos-wrap">${renderTextosFields(h.textos && h.textos.length ? h.textos : [''], ro || lockAll)}</div>
+        <div class="modal-field">
+          <label>Material (links de fotos/videos/recursos para Tamy)</label>
+          <textarea id="h-material" placeholder="Ej: https://drive.google.com/..." ${ro} ${lockAll}>${esc(h.material)}</textarea>
+        </div>
+        <div class="modal-field">
+          <label>${h.programado ? 'Link Drive (descarga final para el cliente)' : 'Link de diseño final (Canva / CapCut)'}</label>
+          <input type="text" id="h-link" placeholder="https://..." value="${esc(h.linkDiseno)}" ${lockAll}>
+          ${!h.programado ? `<div style="font-size:11px;color:var(--tierra);margin-top:6px;">Al programar, reemplazá este link por el de Drive si el cliente necesita descargarlo.</div>` : ''}
+        </div>
+        ${!isEditor ? `
+        <div class="modal-field">
+          <label><input type="checkbox" id="h-diseno-ok" style="width:auto;margin-right:6px;" ${h.estadoDiseno==='aprobado'?'checked':''}> Diseño aprobado por mí</label>
+        </div>` : ''}
+        <div class="modal-grid-2">
+          <div class="modal-field">
+            <label>Estado</label>
+            <select id="h-estado" ${lockAll}>
+              ${isEditor ? `
+                <option value="revision" ${h.estadoCliente==='revision'?'selected':''} disabled>En revisión (cliente)</option>
+                <option value="aprobado" ${h.estadoCliente==='aprobado'?'selected':''} disabled>Aprobado (cliente)</option>
+                <option value="rechazado" ${h.estadoCliente==='rechazado'?'selected':''} disabled>Rechazado (cliente)</option>
+                <option value="programado" ${h.programado?'selected':''}>Programado</option>
+              ` : `
+                ${ESTADOS_CLIENTE.map(e => `<option value="${e.id}" ${h.estadoCliente===e.id && !h.programado?'selected':''}>${e.label}</option>`).join('')}
+                <option value="programado" ${h.programado?'selected':''}>Programado</option>
+              `}
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Fecha real de programación</label>
+            <input type="date" id="h-fechareal" value="${esc(h.fechaRealProgramacion)}" ${lockAll}>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          ${!isEditor ? `<button class="btn-sm danger" id="h-reset">Resetear tarjeta</button>` : ''}
+          ${!isLocked ? `<button class="btn-sm primary" id="h-save">Guardar cambios</button>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  const cantidadSel = document.getElementById('h-cantidad');
+  if (!isEditor) {
+    cantidadSel.addEventListener('change', (e) => {
+      const n = parseInt(e.target.value, 10);
+      const wrap = document.getElementById('h-textos-wrap');
+      const currentTextos = Array.from(wrap.querySelectorAll('.texto-story-input')).map(t => t.value);
+      const newTextos = [];
+      for (let i = 0; i < n; i++) newTextos.push(currentTextos[i] || '');
+      wrap.innerHTML = renderTextosFields(newTextos);
+    });
+  }
+
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  const saveBtn = document.getElementById('h-save');
+  if (saveBtn) saveBtn.addEventListener('click', async () => {
+    const estadoSel = document.getElementById('h-estado').value;
+    const estadoDisenoAnterior = h.estadoDiseno;
+    const linkAnterior = h.linkDiseno;
+
+    if (!isEditor) {
+      h.propuestaIdea = document.getElementById('h-propuesta').value.trim();
+      h.fechaSugerida = document.getElementById('h-fecha').value;
+      h.cantidadStories = parseInt(document.getElementById('h-cantidad').value, 10);
+      h.textos = Array.from(document.querySelectorAll('.texto-story-input')).map(t => t.value);
+      h.material = document.getElementById('h-material').value;
+      h.estadoDiseno = document.getElementById('h-diseno-ok').checked ? 'aprobado' : 'pendiente';
+      h.estadoCliente = estadoSel === 'programado' ? h.estadoCliente : estadoSel;
+    }
+
+    h.linkDiseno = document.getElementById('h-link').value.trim();
+    h.fechaRealProgramacion = document.getElementById('h-fechareal').value;
+    h.programado = estadoSel === 'programado';
+
+    historias[idx] = h;
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+
+    const client = STATE.clients[clientId];
+    const fechaTxt = h.fechaSugerida ? formatFechaCorta(h.fechaSugerida) : 'sin fecha';
+
+    if (!isEditor && h.estadoDiseno !== estadoDisenoAnterior) {
+      if (h.estadoDiseno === 'aprobado') {
+        await pushNotification({
+          forRole: 'editor', type: 'diseno_aprobado', clientId, month: STATE.currentMonth, kind: 'historia', itemIdx: idx,
+          text: `${client.name} · ${fechaTxt} · Cata aprobó tu diseño de historia`,
+        });
+      } else {
+        await pushNotification({
+          forRole: 'editor', type: 'diseno_rechazado', clientId, month: STATE.currentMonth, kind: 'historia', itemIdx: idx,
+          text: `${client.name} · ${fechaTxt} · Cata pidió revisar la historia`,
+        });
+      }
+    }
+
+    if (isEditor && h.linkDiseno && h.linkDiseno !== linkAnterior) {
+      await pushNotification({
+        forRole: 'admin', type: 'diseno_para_revisar', clientId, month: STATE.currentMonth, kind: 'historia', itemIdx: idx,
+        text: `${client.name} · ${fechaTxt} · Tamy cargó una historia para revisar`,
+      });
+    }
+
+    closeModal();
+    renderPostGrid();
+  });
+
+  const resetBtn = document.getElementById('h-reset');
+  if (resetBtn) resetBtn.addEventListener('click', async () => {
+    if (resetBtn.dataset.confirming !== 'true') {
+      resetBtn.dataset.confirming = 'true';
+      resetBtn.textContent = '¿Seguro? Click de nuevo';
+      return;
+    }
+    const fresh = await getHistorias(clientId, STATE.currentMonth);
+    fresh[idx] = emptyHistoria(idx);
+    await saveHistorias(clientId, STATE.currentMonth, fresh);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+function openHistoriaFeedbackModal(clientId, idx) {
+  ensureModalRoot();
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Rechazar / pedir cambios</div>
+        <div class="modal-field">
+          <label>Contanos qué te gustaría ajustar</label>
+          <textarea id="h-fb" placeholder="Ej: preferiría otro enfoque para esta tanda de historias..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          <button class="btn-sm primary" id="h-send">Enviar</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') closeModal();
+  });
+  document.getElementById('h-send').addEventListener('click', async () => {
+    const fb = document.getElementById('h-fb').value.trim();
+    const historias = await getHistorias(clientId, STATE.currentMonth);
+    historias[idx].feedbackCliente = fb;
+    historias[idx].estadoCliente = 'rechazado';
+    await saveHistorias(clientId, STATE.currentMonth, historias);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+async function openHistoriaNotesModal(clientId, idx) {
+  ensureModalRoot();
+  const historias = await getHistorias(clientId, STATE.currentMonth);
+  const h = historias[idx];
+  const notas = h.notasInternas || [];
+  const session = STATE.session;
+
+  let changed = false;
+  notas.forEach(n => {
+    if (!n.vistoPor) n.vistoPor = [];
+    if (!n.vistoPor.includes(session.username)) {
+      n.vistoPor.push(session.username);
+      changed = true;
+    }
+  });
+  if (changed) await saveHistorias(clientId, STATE.currentMonth, historias);
+
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Notas internas — historia</div>
+        <div style="margin-bottom:18px; max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+          ${notas.length === 0 ? '<div style="font-size:13px;color:var(--tierra);font-style:italic;">Todavía no hay notas en esta historia.</div>' : ''}
+          ${notas.map(n => `
+            <div style="background:var(--arena);border-radius:var(--radius);padding:10px 12px;">
+              <div style="font-size:11px;font-weight:700;color:var(--tierra-deep);margin-bottom:3px;">${esc(n.author)} · ${formatFechaHora(n.date)}</div>
+              <div style="font-size:13px;color:var(--tinta);">${esc(n.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="modal-field">
+          <label>Agregar nota</label>
+          <textarea id="h-newnote" placeholder="Ej: falta material de la propiedad..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cerrar</button>
+          <button class="btn-sm primary" id="h-addnote">Agregar nota</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', () => { closeModal(); renderPostGrid(); });
+  document.getElementById('modal-overlay').addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') { closeModal(); renderPostGrid(); }
+  });
+  document.getElementById('h-addnote').addEventListener('click', async () => {
+    const text = document.getElementById('h-newnote').value.trim();
+    if (!text) return;
+    const fresh = await getHistorias(clientId, STATE.currentMonth);
+    if (!fresh[idx].notasInternas) fresh[idx].notasInternas = [];
+    fresh[idx].notasInternas.push({ author: session.name, date: new Date().toISOString(), text, vistoPor: [session.username] });
+    await saveHistorias(clientId, STATE.currentMonth, fresh);
+    closeModal();
+    renderPostGrid();
+  });
+}
+
+/* ============================================================
+   ADMIN: Clients & Plans tab
+   ============================================================ */
+async function renderClientsTab(container) {
+  container.innerHTML = `
+    <div class="section-block">
+      <div class="section-title">
+        Clientes
+        <button class="btn-sm primary" id="add-client">+ Nuevo cliente</button>
+      </div>
+      <table class="admin-table">
+        <thead><tr><th>Cliente</th><th>Familia</th><th>Plan default</th><th>LinkedIn</th><th>Color</th></tr></thead>
+        <tbody id="clients-tbody"></tbody>
+      </table>
+      <div style="font-size:12px;color:var(--tierra-deep);margin-top:8px;">Cada mes se carga automáticamente con el plan default; el desplegable del calendario te permite cambiarlo puntualmente para un mes en particular.</div>
+    </div>
+    <div class="section-block">
+      <div class="section-title">
+        Planes
+        <button class="btn-sm primary" id="add-plan">+ Nuevo plan</button>
+      </div>
+      <table class="admin-table">
+        <thead><tr><th>Plan</th><th>Familia</th><th>Feed</th><th>Historias</th><th>Precio</th><th>Detalle</th></tr></thead>
+        <tbody id="plans-tbody"></tbody>
+      </table>
+    </div>
+  `;
+
+  const familyLabels = { solo: 'Cata sola (Paula)', equipo: 'Cata + Tamy' };
+
+  const ctbody = document.getElementById('clients-tbody');
+  ctbody.innerHTML = Object.entries(STATE.clients).map(([id, c]) => {
+    const plansForThisFamily = Object.entries(STATE.plans).filter(([pid, p]) => p.family === c.family);
+    return `
+    <tr>
+      <td class="name-cell">${esc(c.name)}</td>
+      <td>
+        <select data-client-family="${id}">
+          <option value="solo" ${c.family==='solo'?'selected':''}>Cata sola</option>
+          <option value="equipo" ${c.family==='equipo'?'selected':''}>Cata + Tamy</option>
+        </select>
+      </td>
+      <td>
+        <select data-client-plandefault="${id}">
+          <option value="">Sin definir</option>
+          ${plansForThisFamily.map(([pid, p]) => `<option value="${pid}" ${pid===c.planDefault?'selected':''}>${esc(p.name)}</option>`).join('')}
+        </select>
+      </td>
+      <td>${c.allowLinkedin ? 'Sí' : 'No'}</td>
+      <td><span class="swatch" style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${c.color};vertical-align:middle"></span></td>
+    </tr>
+  `;
+  }).join('');
+
+  ctbody.querySelectorAll('[data-client-family]').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const cid = sel.dataset.clientFamily;
+      STATE.clients[cid].family = sel.value;
+      STATE.clients[cid].planDefault = null; // reset default plan since family changed
+      await storeSet('app:clients', STATE.clients, true);
+      renderClientsTab(document.getElementById('tab-content'));
+    });
+  });
+
+  ctbody.querySelectorAll('[data-client-plandefault]').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      const cid = sel.dataset.clientPlandefault;
+      STATE.clients[cid].planDefault = sel.value || null;
+      await storeSet('app:clients', STATE.clients, true);
+    });
+  });
+
+  const ptbody = document.getElementById('plans-tbody');
+  ptbody.innerHTML = Object.entries(STATE.plans).map(([id, p]) => `
+    <tr>
+      <td class="name-cell">${esc(p.name)}</td>
+      <td>${familyLabels[p.family] || p.family}</td>
+      <td>${p.piezasFeed}</td>
+      <td>${p.numHistorias}</td>
+      <td>$${p.price.toLocaleString('es-AR')}</td>
+      <td style="font-size:12px;color:var(--tierra-deep);">${esc(p.detail)}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('add-client').addEventListener('click', () => openNewClientModal());
+  document.getElementById('add-plan').addEventListener('click', () => openNewPlanModal());
+}
+
+function openNewClientModal() {
+  ensureModalRoot();
+  const root = document.getElementById('modal-root');
+  const colors = ['#B6553A','#4F7A8B','#6B7A5E','#C99A3C','#8B6F4E','#A85C7E'];
+  const randomColor = colors[Math.floor(Math.random()*colors.length)];
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Nuevo cliente</div>
+        <div class="modal-field"><label>Nombre del cliente</label><input type="text" id="nc-name"></div>
+        <div class="modal-field"><label>Familia de trabajo</label>
+          <select id="nc-family">
+            <option value="equipo">Cata + Tamy</option>
+            <option value="solo">Cata sola</option>
+          </select>
+        </div>
+        <div class="modal-field"><label><input type="checkbox" id="nc-linkedin" style="width:auto;margin-right:6px;">Habilitar LinkedIn como plataforma</label></div>
+        <div class="modal-field"><label>Usuario de acceso (login)</label><input type="text" id="nc-user" placeholder="ej: juanperez"></div>
+        <div class="modal-field"><label>Contraseña</label><input type="text" id="nc-pass" placeholder="ej: juan2026"></div>
+        <input type="hidden" id="nc-color" value="${randomColor}">
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          <button class="btn-sm primary" id="nc-save">Crear cliente</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id==='modal-overlay') closeModal(); });
+  document.getElementById('nc-save').addEventListener('click', async () => {
+    const name = document.getElementById('nc-name').value.trim();
+    const family = document.getElementById('nc-family').value;
+    const allowLinkedin = document.getElementById('nc-linkedin').checked;
+    const username = document.getElementById('nc-user').value.trim().toLowerCase();
+    const password = document.getElementById('nc-pass').value;
+    if (!name || !username || !password) return;
+    const clientId = username;
+    STATE.clients[clientId] = { name, family, allowLinkedin, color: document.getElementById('nc-color').value, planDefault: null };
+    STATE.users[username] = { password, role: 'client', name, clientId };
+    await storeSet('app:clients', STATE.clients, true);
+    await storeSet('app:users', STATE.users, true);
+    closeModal();
+    renderClientsTab(document.getElementById('tab-content'));
+  });
+}
+
+function openNewPlanModal() {
+  ensureModalRoot();
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `
+    <div class="modal-overlay show" id="modal-overlay">
+      <div class="modal-box">
+        <div class="modal-title">Nuevo plan</div>
+        <div class="modal-field"><label>Nombre del plan</label><input type="text" id="np-name" placeholder="ej: Estrategia Base"></div>
+        <div class="modal-field"><label>Familia de trabajo</label>
+          <select id="np-family">
+            <option value="equipo">Cata + Tamy</option>
+            <option value="solo">Cata sola</option>
+          </select>
+        </div>
+        <div class="modal-field"><label>Piezas de feed por mes (posts/carruseles/reels)</label><input type="number" id="np-feed" value="12" min="0"></div>
+        <div class="modal-field"><label>Cantidad de tarjetas de historia por mes</label><input type="number" id="np-historias" value="8" min="0"></div>
+        <div class="modal-field"><label>Precio mensual ($)</label><input type="number" id="np-price" value="190000" min="0" step="1000"></div>
+        <div class="modal-field"><label>Detalle / descripción</label><textarea id="np-detail" placeholder="Ej: 12 piezas mensuales de feed + 8 historias"></textarea></div>
+        <div class="modal-actions">
+          <button class="btn-sm" id="m-cancel">Cancelar</button>
+          <button class="btn-sm primary" id="np-save">Crear plan</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('m-cancel').addEventListener('click', closeModal);
+  document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target.id==='modal-overlay') closeModal(); });
+  document.getElementById('np-save').addEventListener('click', async () => {
+    const name = document.getElementById('np-name').value.trim();
+    const family = document.getElementById('np-family').value;
+    const piezasFeed = parseInt(document.getElementById('np-feed').value, 10) || 0;
+    const numHistorias = parseInt(document.getElementById('np-historias').value, 10) || 0;
+    const price = parseInt(document.getElementById('np-price').value, 10) || 0;
+    const detail = document.getElementById('np-detail').value.trim();
+    if (!name) return;
+    const planId = 'plan_' + Date.now();
+    STATE.plans[planId] = { name, family, piezasFeed, numHistorias, price, detail };
+    await storeSet('app:plans', STATE.plans, true);
+    closeModal();
+    renderClientsTab(document.getElementById('tab-content'));
+  });
+}
+
+/* ============================================================
+   ADMIN: Users tab
+   ============================================================ */
+async function renderUsersTab(container) {
+  const roleLabels = { admin: 'Administradora', editor: 'Editora', client: 'Cliente' };
+  container.innerHTML = `
+    <div class="section-block">
+      <div class="section-title">Usuarios y accesos</div>
+      <table class="admin-table">
+        <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Contraseña</th></tr></thead>
+        <tbody>
+          ${Object.entries(STATE.users).map(([uname, u]) => `
+            <tr>
+              <td class="name-cell">${esc(uname)}</td>
+              <td>${esc(u.name)}</td>
+              <td>${roleLabels[u.role] || u.role}</td>
+              <td style="font-family:var(--font-mono);color:var(--tierra-deep)">${esc(u.password)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
